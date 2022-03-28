@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+  "sealedstruct",
+  "sealedstruct_derive",
+]
