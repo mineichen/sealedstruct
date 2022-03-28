@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
-pub use sealedstruct_derive::{Seal, TryIntoSealed};
+pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
 
 pub mod prelude {
     pub use crate::{TryIntoSealed, ValidationResultExtensions};

@@ -2,6 +2,7 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
+    use sealedstruct::TryIntoSealed;
 
     // Flaw. Visibility for Raw should be restricted to pub, pub (crate), or pub(super)
     // The hole procedure just makes sense if this is contained in a submodule.
@@ -21,6 +22,7 @@ mod config {
         pub ip: std::net::IpAddr,
         pub optional: Option<i32>,
         pub direction: DirectionRaw,
+        pub always: AlwaysValid,
     }
 
     #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
@@ -30,6 +32,12 @@ mod config {
               //Right { millis: i8 }
     }
 
+    #[derive(PartialEq, Debug, sealedstruct::IntoSealed)]
+    pub enum AlwaysValid {
+        Foo,
+        Bar,
+    }
+
     impl Default for WrapperRaw {
         fn default() -> Self {
             Self {
@@ -37,6 +45,7 @@ mod config {
                 ip: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
                 optional: None,
                 direction: DirectionRaw::Down,
+                always: AlwaysValid::Bar,
             }
         }
     }

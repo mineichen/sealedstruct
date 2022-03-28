@@ -1,3 +1,4 @@
+mod into_sealed;
 mod seal;
 mod try_into_sealed;
 
@@ -21,4 +22,9 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     try_into_sealed::derive_try_into_sealed(input)
 }
- 
+
+/// Implements TryIntoSealed for a types without invalid invariant
+#[proc_macro_derive(IntoSealed)]
+pub fn derive_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    into_sealed::derive_into_sealed(input)
+}
