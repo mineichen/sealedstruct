@@ -1,4 +1,8 @@
-use std::{collections::HashSet, fmt::Write};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    hash::Hash,
+};
 
 use smallvec::SmallVec;
 
@@ -17,6 +21,7 @@ pub trait TryIntoSealed {
 #[derive(Debug, PartialEq, Default, thiserror::Error)]
 pub struct ValidationErrors(SmallVec<[ValidationError; 1]>);
 
+// Format is used for summary-purpose only and doesn't output real JSON by choice.
 impl std::fmt::Display for ValidationErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("ValidationErrors({}): [", self.0.len()))?;
@@ -24,8 +29,11 @@ impl std::fmt::Display for ValidationErrors {
         let mut iter = set.into_iter();
         if let Some(first) = iter.next() {
             f.write_fmt(format_args!("{}{}{}", "", first, ""))?;
-            for x in iter {
+            for x in iter.by_ref().take(4) {
                 f.write_fmt(format_args!(", {}{}{}", "", x, ""))?;
+            }
+            if let Some(_) = iter.next() {
+                f.write_str(", ...")?;
             }
         }
 
@@ -131,8 +139,7 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
 macro_rules! sealed_to_self {
     ($($type:ident),*) => {
 
-        use std::net::*;
-        use std::time::*;
+
         $(
             impl TryIntoSealed for $type {
                 type Target = Self;
@@ -149,10 +156,66 @@ sealed_to_self! {
     i8, i16, i32, i64, i128,
     f32, f64,
     usize, isize,
-    bool,
+    bool
+}
 
-    Duration,
-    IpAddr, Ipv4Addr, Ipv6Addr
+mod std_derives {
+    use super::*;
+    use std::net::*;
+    use std::time::*;
+
+    sealed_to_self! {
+        Duration,
+        IpAddr, Ipv4Addr, Ipv6Addr
+    }
+}
+
+impl<TKey, TValue> TryIntoSealed for HashMap<TKey, TValue>
+where
+    TKey: TryIntoSealed,
+    TValue: TryIntoSealed,
+    TKey::Target: Hash + Eq,
+{
+    type Target = HashMap<TKey::Target, TValue::Target>;
+
+    fn try_into_sealed(self) -> Result<Self::Target> {
+        self.into_iter()
+            .map(|(key, value)| key.try_into_sealed().combine(value.try_into_sealed()))
+            .collect()
+    }
+}
+
+impl<T> TryIntoSealed for Vec<T>
+where
+    T: TryIntoSealed,
+{
+    type Target = Vec<T::Target>;
+
+    fn try_into_sealed(self) -> Result<Self::Target> {
+        self.into_iter()
+            .map(TryIntoSealed::try_into_sealed)
+            .collect()
+    }
+}
+
+impl<T> TryIntoSealed for HashSet<T>
+where
+    T: TryIntoSealed,
+{
+    type Target = Vec<T::Target>;
+
+    fn try_into_sealed(self) -> Result<Self::Target> {
+        self.into_iter()
+            .map(TryIntoSealed::try_into_sealed)
+            .collect()
+    }
+}
+
+#[cfg(feature = "uuid")]
+mod uuid_derives {
+    use super::*;
+    use uuid::Uuid;
+    sealed_to_self!(Uuid);
 }
 
 impl<T> TryIntoSealed for Option<T>
@@ -219,7 +282,8 @@ mod tests {
     fn format_validation_error() {
         let result: super::Result<()> = ValidationError::new("Foo").into();
         let result = result.prepend_path("Baz");
-        let error = result.unwrap_err();
+        let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
+
         assert_eq!(
             "ValidationErrors(1): [Baz.Foo]".to_string(),
             error.to_string()

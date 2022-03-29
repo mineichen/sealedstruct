@@ -9,3 +9,4 @@ version = "0.1.0"
 sealedstruct_derive = {path = "../sealedstruct_derive"}
 smallvec = {version = "1.0", features = ["const_new"]}
 thiserror = "1"
+uuid = {version = "0", optional = true}
