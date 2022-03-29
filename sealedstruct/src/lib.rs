@@ -47,12 +47,10 @@ impl ValidationError {
         }
     }
 
-    pub fn with_fields(fields: impl IntoIterator<Item = String>) -> Option<Self> {
-        let mut iterator = fields.into_iter();
-        let first = iterator.next()?;
+    pub fn with_fields<T: Into<String>>(first: T, rest: impl IntoIterator<Item = T>) -> Self {
         let mut r = Self::new(first);
-        r.fields.extend(iterator);
-        Some(r)
+        r.fields.extend(rest.into_iter().map(|x| x.into()));
+        r
     }
 
     pub fn iter_fields(&self) -> impl Iterator<Item = &str> {
@@ -70,6 +68,7 @@ pub trait ValidationResultExtensions {
     type Ok;
     fn combine<T>(self, other: Result<T>) -> Result<(Self::Ok, T)>;
     fn prepend_path(self, path: &str) -> Self;
+    fn with_sealed_error(self, error: ValidationError) -> Self;
 }
 
 impl<TOwn> ValidationResultExtensions for Result<TOwn> {
@@ -95,6 +94,13 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
             }
             errors
         })
+    }
+
+    fn with_sealed_error(self, error: ValidationError) -> Self {
+        match self {
+            Ok(_) => error.into(),
+            Err(prev) => Err(prev.combine_with(ValidationErrors::new(error))),
+        }
     }
 }
 
@@ -136,5 +142,52 @@ where
             Some(x) => x.try_into_sealed().map(Option::Some),
             None => Ok(None),
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use crate::ValidationError;
+
+    use super::prelude::*;
+
+    #[test]
+    fn add_error_to_ok_result() {
+        let mut result = super::Result::Ok(1);
+        result = result.with_sealed_error(ValidationError::new("Foo"));
+        let mut errors = result.unwrap_err().into_iter();
+
+        assert_eq!(
+            vec!["Foo"],
+            errors
+                .next()
+                .expect("OneError")
+                .iter_fields()
+                .collect::<Vec<&str>>()
+        );
+        assert_eq!(errors.next(), None);
+    }
+
+    #[test]
+    fn add_error_to_err_result() {
+        let mut result: super::Result<()> = ValidationError::new("Foo").into();
+        result = result.with_sealed_error(ValidationError::new("Bar"));
+        let mut errors = result.unwrap_err().into_iter();
+
+        assert_eq!(
+            vec!["Foo"],
+            errors
+                .next()
+                .expect("OneError")
+                .iter_fields()
+                .collect::<Vec<&str>>()
+        );
+        assert_eq!(
+            vec!["Bar"],
+            errors
+                .next()
+                .expect("OneError")
+                .iter_fields()
+                .collect::<Vec<&str>>()
+        );
     }
 }
