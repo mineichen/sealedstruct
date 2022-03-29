@@ -25,6 +25,12 @@ impl ValidationErrors {
     }
 }
 
+impl Into<ValidationErrors> for ValidationError {
+    fn into(self) -> ValidationErrors {
+        ValidationErrors::new(self)
+    }
+}
+
 impl IntoIterator for ValidationErrors {
     type Item = ValidationError;
 
