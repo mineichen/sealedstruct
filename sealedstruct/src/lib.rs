@@ -137,9 +137,7 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
 }
 
 macro_rules! sealed_to_self {
-    ($($type:ident),*) => {
-
-
+    ($($type:ty),*) => {
         $(
             impl TryIntoSealed for $type {
                 type Target = Self;
@@ -156,17 +154,26 @@ sealed_to_self! {
     i8, i16, i32, i64, i128,
     f32, f64,
     usize, isize,
-    bool
+    bool,
+    &'static str,
+    String
 }
 
 mod std_derives {
     use super::*;
-    use std::net::*;
-    use std::time::*;
 
     sealed_to_self! {
-        Duration,
-        IpAddr, Ipv4Addr, Ipv6Addr
+        std::time::Duration,
+        std::net::IpAddr,
+        std::net::Ipv4Addr,
+        std::net::Ipv6Addr
+    }
+}
+#[cfg(feature = "uuid")]
+mod uuid_derives {
+    use super::*;
+    sealed_to_self! {
+        uuid::Uuid
     }
 }
 
@@ -209,13 +216,6 @@ where
             .map(TryIntoSealed::try_into_sealed)
             .collect()
     }
-}
-
-#[cfg(feature = "uuid")]
-mod uuid_derives {
-    use super::*;
-    use uuid::Uuid;
-    sealed_to_self!(Uuid);
 }
 
 impl<T> TryIntoSealed for Option<T>
