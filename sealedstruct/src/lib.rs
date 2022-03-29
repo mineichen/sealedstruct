@@ -1,3 +1,5 @@
+use std::{collections::HashSet, fmt::Write};
+
 use smallvec::SmallVec;
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
@@ -12,8 +14,24 @@ pub trait TryIntoSealed {
     fn try_into_sealed(self) -> Result<Self::Target>;
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, thiserror::Error)]
 pub struct ValidationErrors(SmallVec<[ValidationError; 1]>);
+
+impl std::fmt::Display for ValidationErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ValidationErrors({}): [", self.0.len()))?;
+        let set: HashSet<&str> = self.0.iter().flat_map(|x| x.iter_fields()).collect();
+        let mut iter = set.into_iter();
+        if let Some(first) = iter.next() {
+            f.write_fmt(format_args!("{}{}{}", "", first, ""))?;
+            for x in iter {
+                f.write_fmt(format_args!(", {}{}{}", "", x, ""))?;
+            }
+        }
+
+        f.write_char(']')
+    }
+}
 
 impl ValidationErrors {
     pub const fn new(error: ValidationError) -> Self {
@@ -152,7 +170,7 @@ where
 }
 #[cfg(test)]
 mod tests {
-    use crate::ValidationError;
+    use crate::{ValidationError, ValidationErrors};
 
     use super::prelude::*;
 
@@ -194,6 +212,17 @@ mod tests {
                 .expect("OneError")
                 .iter_fields()
                 .collect::<Vec<&str>>()
+        );
+    }
+
+    #[test]
+    fn format_validation_error() {
+        let result: super::Result<()> = ValidationError::new("Foo").into();
+        let result = result.prepend_path("Baz");
+        let error = result.unwrap_err();
+        assert_eq!(
+            "ValidationErrors(1): [Baz.Foo]".to_string(),
+            error.to_string()
         );
     }
 }
