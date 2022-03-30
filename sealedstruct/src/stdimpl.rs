@@ -1,24 +1,21 @@
-use crate::{Result, TryIntoSealedExtended, ValidationResultExtensions};
+use crate::{RawSealedInterop, Result, ValidationResultExtensions};
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
     hash::Hash,
 };
 
-impl<TKey, TValue> TryIntoSealedExtended for HashMap<TKey, TValue>
+impl<TKey, TValue> RawSealedInterop for HashMap<TKey, TValue>
 where
-    TKey: TryIntoSealedExtended + Hash + Eq,
-    TValue: TryIntoSealedExtended,
+    TKey: RawSealedInterop + Hash + Eq,
+    TValue: RawSealedInterop,
     TKey::Target: Hash + Eq + Borrow<TKey>,
 {
     type Target = HashMap<TKey::Target, TValue::Target>;
 
-    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+    fn try_into_sealed(self) -> Result<Self::Target> {
         self.into_iter()
-            .map(|(key, value)| {
-                key.try_into_sealed_extended()
-                    .combine(value.try_into_sealed_extended())
-            })
+            .map(|(key, value)| key.try_into_sealed().combine(value.try_into_sealed()))
             .collect()
     }
 
@@ -46,15 +43,15 @@ where
     }
 }
 
-impl<T> TryIntoSealedExtended for Vec<T>
+impl<T> RawSealedInterop for Vec<T>
 where
-    T: TryIntoSealedExtended,
+    T: RawSealedInterop,
 {
     type Target = Vec<T::Target>;
 
-    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+    fn try_into_sealed(self) -> Result<Self::Target> {
         self.into_iter()
-            .map(TryIntoSealedExtended::try_into_sealed_extended)
+            .map(RawSealedInterop::try_into_sealed)
             .collect()
     }
 
@@ -78,16 +75,16 @@ where
     }
 }
 
-impl<T> TryIntoSealedExtended for HashSet<T>
+impl<T> RawSealedInterop for HashSet<T>
 where
-    T: TryIntoSealedExtended + Hash + Eq,
+    T: RawSealedInterop + Hash + Eq,
     T::Target: Hash + Eq + Borrow<T>,
 {
     type Target = HashSet<T::Target>;
 
-    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+    fn try_into_sealed(self) -> Result<Self::Target> {
         self.into_iter()
-            .map(TryIntoSealedExtended::try_into_sealed_extended)
+            .map(RawSealedInterop::try_into_sealed)
             .collect()
     }
     fn from_sealed(sealed: Self::Target) -> Self {
@@ -110,15 +107,15 @@ where
     }
 }
 
-impl<T> TryIntoSealedExtended for Option<T>
+impl<T> RawSealedInterop for Option<T>
 where
-    T: TryIntoSealedExtended,
+    T: RawSealedInterop,
 {
     type Target = Option<T::Target>;
 
-    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+    fn try_into_sealed(self) -> Result<Self::Target> {
         match self {
-            Some(x) => x.try_into_sealed_extended().map(Option::Some),
+            Some(x) => x.try_into_sealed().map(Option::Some),
             None => Ok(None),
         }
     }

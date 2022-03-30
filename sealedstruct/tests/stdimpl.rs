@@ -1,6 +1,5 @@
+use sealedstruct::RawSealedInterop;
 use std::collections::{HashMap, HashSet};
-
-use sealedstruct::TryIntoSealedExtended;
 
 #[derive(
     PartialEq, Eq, Hash, Clone, Default, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed,
@@ -14,7 +13,7 @@ fn compare_hashmap() {
     let map = [(1, FooRaw { x: 42 })]
         .into_iter()
         .collect::<HashMap<i32, FooRaw>>();
-    let mut sealed_map = map.clone().try_into_sealed_extended().unwrap();
+    let mut sealed_map = map.clone().try_into_sealed().unwrap();
 
     assert!(map.partial_eq(&sealed_map));
     let mut clone_map = map.clone();
@@ -33,7 +32,7 @@ fn compare_hashmap() {
 #[test]
 fn compare_vec() {
     let vec = vec![FooRaw { x: 42 }];
-    let sealed_vec = vec.clone().try_into_sealed_extended().unwrap();
+    let sealed_vec = vec.clone().try_into_sealed().unwrap();
     assert!(vec.partial_eq(&sealed_vec));
 
     let mut clone_vec = vec.clone();
@@ -47,7 +46,7 @@ fn compare_vec() {
 #[test]
 fn compare_hashset() {
     let hashset = [42].into_iter().collect::<HashSet<i32>>();
-    let sealed_hashset = hashset.clone().try_into_sealed_extended().unwrap();
+    let sealed_hashset = hashset.clone().try_into_sealed().unwrap();
     assert!(hashset.partial_eq(&sealed_hashset));
 
     let mut clone_set = hashset.clone();
@@ -60,7 +59,7 @@ fn compare_hashset() {
 #[test]
 fn compare_option() {
     let some = Some(FooRaw { x: 42 });
-    let sealed_some = some.clone().try_into_sealed_extended().unwrap();
+    let sealed_some = some.clone().try_into_sealed().unwrap();
     assert!(some.partial_eq(&sealed_some));
     assert!((None as Option<FooRaw>).partial_eq(&None));
     assert!(!some.partial_eq(&None));

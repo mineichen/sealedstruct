@@ -6,7 +6,7 @@ pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
 
 pub mod prelude {
-    pub use crate::{TryIntoSealedExtended, ValidationResultExtensions};
+    pub use crate::{RawSealedInterop, ValidationResultExtensions};
 }
 
 /// Usually, converting from Sealed to Raw is straight forward:
@@ -15,29 +15,31 @@ pub mod prelude {
 ///
 /// It gets more complicated for types where Raw cannot implement From<Sealed>
 /// - E.g. Generic types like
-pub trait TryIntoSealedExtended {
+///
+/// Custom types derived from `Seal` usually implement TryIntoSealed only.
+/// RawSealedInterop is automatically implemented because `Seal`
+/// generates PartialEq<Sealed> for Raw and From<Sealed> for Raw
+pub trait RawSealedInterop {
     type Target;
-    fn try_into_sealed_extended(self) -> Result<Self::Target>;
+    fn try_into_sealed(self) -> Result<Self::Target>;
     fn from_sealed(sealed: Self::Target) -> Self;
     // Necessary to compare without cloning
     fn partial_eq(&self, other: &Self::Target) -> bool;
 }
-
-pub struct Test;
 
 pub trait TryIntoSealed {
     type Target;
     fn try_into_sealed(self) -> Result<Self::Target>;
 }
 
-impl<T: TryIntoSealed> TryIntoSealedExtended for T
+impl<T: TryIntoSealed> RawSealedInterop for T
 where
     T::Target: Into<T>,
     T: PartialEq<T::Target>,
 {
     type Target = T::Target;
 
-    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+    fn try_into_sealed(self) -> Result<Self::Target> {
         self.try_into_sealed()
     }
 

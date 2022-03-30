@@ -36,7 +36,6 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
     proc_macro::TokenStream::from(expanded)
 }
 
-// Generate an expression to sum up the heap size of each field.
 fn create_fields(data: &Data, result_name: &Ident) -> TokenStream {
     match *data {
         Data::Struct(ref data) => {
@@ -47,7 +46,7 @@ fn create_fields(data: &Data, result_name: &Ident) -> TokenStream {
                         let name_str = name.as_ref().expect("Has ident").to_string();
                         quote_spanned! {f.span()=>
                             #name: sealedstruct::prelude::ValidationResultExtensions::prepend_path(
-                                sealedstruct::TryIntoSealedExtended::try_into_sealed_extended(self.#name),
+                                sealedstruct::RawSealedInterop::try_into_sealed(self.#name),
                                 #name_str
                             ),
                         }
