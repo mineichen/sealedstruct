@@ -23,7 +23,7 @@ pub trait TryIntoSealedExtended {
     fn partial_eq(&self, other: &Self::Target) -> bool;
 }
 
-struct Test;
+pub struct Test;
 
 pub trait TryIntoSealed {
     type Target;
