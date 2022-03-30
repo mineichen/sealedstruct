@@ -23,6 +23,8 @@ pub trait TryIntoSealedExtended {
     fn partial_eq(&self, other: &Self::Target) -> bool;
 }
 
+struct Test;
+
 pub trait TryIntoSealed {
     type Target;
     fn try_into_sealed(self) -> Result<Self::Target>;

@@ -10,3 +10,11 @@ sealedstruct_derive = {path = "../sealedstruct_derive"}
 smallvec = {version = "1.0", features = ["const_new"]}
 thiserror = "1"
 uuid = {version = "0", optional = true}
+
+[dev-dependencies]
+uuid = {version = "0"}
+
+[[test]]
+name = "nested"
+path = "tests/nested.rs"
+required-features = ["uuid"]

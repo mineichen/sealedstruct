@@ -4,9 +4,9 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
-    use std::collections::HashMap;
-
     use sealedstruct::TryIntoSealedExtended;
+    use std::collections::HashMap;
+    use uuid::Uuid;
 
     // Flaw. Visibility for Raw should be restricted to pub, pub (crate), or pub(super)
     // The hole procedure just makes sense if this is contained in a submodule.
@@ -27,7 +27,9 @@ mod config {
         pub optional: Option<i32>,
         pub direction: DirectionRaw,
         pub always: AlwaysValid,
-        pub map: Vec<i32>,
+        pub map: Vec<NumbersRaw>,
+        pub id: Uuid,
+        pub hash_map: HashMap<Uuid, NumbersRaw>,
     }
 
     #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
@@ -52,6 +54,8 @@ mod config {
                 direction: DirectionRaw::Down,
                 always: AlwaysValid::Bar,
                 map: Default::default(),
+                id: Uuid::from_u128(1),
+                hash_map: Default::default(),
             }
         }
     }
