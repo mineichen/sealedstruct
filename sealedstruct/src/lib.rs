@@ -1,21 +1,51 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-    hash::Hash,
-};
-
+mod stdimpl;
 use smallvec::SmallVec;
+use std::{collections::HashSet, fmt::Write};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
 
 pub mod prelude {
-    pub use crate::{TryIntoSealed, ValidationResultExtensions};
+    pub use crate::{TryIntoSealedExtended, ValidationResultExtensions};
+}
+
+/// Usually, converting from Sealed to Raw is straight forward:
+/// - When using derive sealedstruct::Seal, Raw implements From<Sealed>, which can be used
+/// - When Sealed is == Raw, simply return self
+///
+/// It gets more complicated for types where Raw cannot implement From<Sealed>
+/// - E.g. Generic types like
+pub trait TryIntoSealedExtended {
+    type Target;
+    fn try_into_sealed_extended(self) -> Result<Self::Target>;
+    fn from_sealed(sealed: Self::Target) -> Self;
+    // Necessary to compare without cloning
+    fn partial_eq(&self, other: &Self::Target) -> bool;
 }
 
 pub trait TryIntoSealed {
     type Target;
     fn try_into_sealed(self) -> Result<Self::Target>;
+}
+
+impl<T: TryIntoSealed> TryIntoSealedExtended for T
+where
+    T::Target: Into<T>,
+    T: PartialEq<T::Target>,
+{
+    type Target = T::Target;
+
+    fn try_into_sealed_extended(self) -> Result<Self::Target> {
+        self.try_into_sealed()
+    }
+
+    fn from_sealed(sealed: Self::Target) -> Self {
+        sealed.into()
+    }
+
+    fn partial_eq(&self, other: &Self::Target) -> bool {
+        self.eq(other)
+    }
 }
 
 #[derive(Debug, PartialEq, Default, thiserror::Error)]
@@ -177,63 +207,9 @@ mod uuid_derives {
     }
 }
 
-impl<TKey, TValue> TryIntoSealed for HashMap<TKey, TValue>
-where
-    TKey: TryIntoSealed,
-    TValue: TryIntoSealed,
-    TKey::Target: Hash + Eq,
-{
-    type Target = HashMap<TKey::Target, TValue::Target>;
-
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        self.into_iter()
-            .map(|(key, value)| key.try_into_sealed().combine(value.try_into_sealed()))
-            .collect()
-    }
-}
-
-impl<T> TryIntoSealed for Vec<T>
-where
-    T: TryIntoSealed,
-{
-    type Target = Vec<T::Target>;
-
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        self.into_iter()
-            .map(TryIntoSealed::try_into_sealed)
-            .collect()
-    }
-}
-
-impl<T> TryIntoSealed for HashSet<T>
-where
-    T: TryIntoSealed,
-{
-    type Target = Vec<T::Target>;
-
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        self.into_iter()
-            .map(TryIntoSealed::try_into_sealed)
-            .collect()
-    }
-}
-
-impl<T> TryIntoSealed for Option<T>
-where
-    T: TryIntoSealed,
-{
-    type Target = Option<T::Target>;
-
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        match self {
-            Some(x) => x.try_into_sealed().map(Option::Some),
-            None => Ok(None),
-        }
-    }
-}
 #[cfg(test)]
 mod tests {
-    use crate::{ValidationError, ValidationErrors};
+    use crate::ValidationError;
 
     use super::prelude::*;
 

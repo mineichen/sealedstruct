@@ -1,8 +1,12 @@
+use std::collections::HashMap;
+
 use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
-    use sealedstruct::TryIntoSealed;
+    use std::collections::HashMap;
+
+    use sealedstruct::TryIntoSealedExtended;
 
     // Flaw. Visibility for Raw should be restricted to pub, pub (crate), or pub(super)
     // The hole procedure just makes sense if this is contained in a submodule.
@@ -23,6 +27,7 @@ mod config {
         pub optional: Option<i32>,
         pub direction: DirectionRaw,
         pub always: AlwaysValid,
+        pub map: Vec<i32>,
     }
 
     #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
@@ -46,6 +51,7 @@ mod config {
                 optional: None,
                 direction: DirectionRaw::Down,
                 always: AlwaysValid::Bar,
+                map: Default::default(),
             }
         }
     }
@@ -71,16 +77,17 @@ mod config {
 }
 #[test]
 fn sealed_numbers() {
-    let value = NumbersRaw::default().try_into_sealed().unwrap();
+    let value = NumbersRaw::default().try_into_sealed_extended().unwrap();
     assert_eq!(NumbersRaw::default(), value);
 
     let wrapper_sealed = WrapperRaw {
         numbers: NumbersRaw::default(),
         ..Default::default()
     }
-    .try_into_sealed()
+    .try_into_sealed_extended()
     .expect("This should be valid");
     let nr: &NumbersSealed = &wrapper_sealed.numbers;
+
     assert_eq!(0i8, nr.int8);
 
     assert_ne!(
@@ -88,7 +95,7 @@ fn sealed_numbers() {
             int8: 42,
             ..Default::default()
         },
-        NumbersRaw::default().try_into_sealed().unwrap()
+        NumbersRaw::default().try_into_sealed_extended().unwrap()
     )
 }
 
@@ -101,7 +108,7 @@ fn error_path() {
         },
         ..Default::default()
     }
-    .try_into_sealed();
+    .try_into_sealed_extended();
     match r {
         Ok(_) => panic!("Should be invalid"),
         Err(err) => {
@@ -113,4 +120,22 @@ fn error_path() {
             );
         }
     }
+}
+
+#[test]
+fn test_collection_types() {
+    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    pub struct InnerRaw {}
+    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    pub struct OuterRaw {
+        map: Option<InnerRaw>,
+    }
+    let r = OuterResult {
+        map: Ok(None), //map: Ok([(1i32, InnerSealed(InnerInner {}))].into_iter().collect()),
+    };
+
+    let map = [(1i32, NumbersRaw::default())]
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+    let x = map.try_into_sealed_extended().unwrap();
 }

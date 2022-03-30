@@ -51,12 +51,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
-
         impl From<#result_name> for sealedstruct::Result<#sealed_name> {
             fn from(input: #result_name) -> Self {
                 #result_into_sealed
             }
         }
+        // Todo: Reenable comparison
 
         impl std::cmp::PartialEq<#sealed_name> for #raw_name {
             fn eq(&self, other: & #sealed_name ) -> bool {
@@ -78,7 +78,7 @@ fn create_cmp_raw_with_sealed_body(
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => fields.named.iter().fold(quote! { true }, |acc, f| {
                 let ident = &f.ident;
-                quote!( #acc && self.#ident == other.#ident )
+                quote!( #acc && sealedstruct::TryIntoSealedExtended::partial_eq(&self.#ident, &other.#ident))
             }),
             Fields::Unnamed(ref _fields) => {
                 unimplemented!("Tuple-Structs are not supported yet");
@@ -181,7 +181,7 @@ fn create_sealed_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident
             Fields::Named(ref fields) => {
                 let field_mappings = fields.named.iter().map(|f| {
                     let ident = &f.ident;
-                    quote! { #ident: input.#ident.into(),}
+                    quote! { #ident: sealedstruct::TryIntoSealedExtended::from_sealed(input.#ident),}
                 });
 
                 quote! {
@@ -223,7 +223,7 @@ fn create_inner(data: &Data, inner_name: &Ident) -> TokenStream {
                     let name = &f.ident;
                     let ty = &f.ty;
                     quote_spanned! {f.span()=>
-                        pub #name: <#ty as sealedstruct::TryIntoSealed>::Target,
+                        pub #name: <#ty as sealedstruct::TryIntoSealedExtended>::Target,
                     }
                 });
                 quote! {
@@ -271,7 +271,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                         let ty = &f.ty;
                         let vis = &f.vis;
                         quote_spanned! {f.span()=>
-                            #vis #name: sealedstruct::Result<<#ty as sealedstruct::TryIntoSealed>::Target>,
+                            #vis #name: sealedstruct::Result<<#ty as sealedstruct::TryIntoSealedExtended>::Target>,
                         }
                     });
                 quote! {
