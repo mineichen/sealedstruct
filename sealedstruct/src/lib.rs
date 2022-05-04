@@ -193,6 +193,47 @@ sealed_to_self! {
     String
 }
 
+impl<T0: RawSealedInterop, T1: RawSealedInterop> RawSealedInterop for (T0, T1) {
+    type Target = (T0::Target, T1::Target);
+
+    fn try_into_sealed(self) -> Result<Self::Target> {
+        Ok((self.0.try_into_sealed()?, self.1.try_into_sealed()?))
+    }
+
+    fn from_sealed(sealed: Self::Target) -> Self {
+        (T0::from_sealed(sealed.0), T1::from_sealed(sealed.1))
+    }
+
+    fn partial_eq(&self, other: &Self::Target) -> bool {
+        self.0.partial_eq(&other.0) && self.1.partial_eq(&other.1)
+    }
+}
+impl<T0: RawSealedInterop, T1: RawSealedInterop, T2: RawSealedInterop> RawSealedInterop
+    for (T0, T1, T2)
+{
+    type Target = (T0::Target, T1::Target, T2::Target);
+
+    fn try_into_sealed(self) -> Result<Self::Target> {
+        Ok((
+            self.0.try_into_sealed()?,
+            self.1.try_into_sealed()?,
+            self.2.try_into_sealed()?,
+        ))
+    }
+
+    fn from_sealed(sealed: Self::Target) -> Self {
+        (
+            T0::from_sealed(sealed.0),
+            T1::from_sealed(sealed.1),
+            T2::from_sealed(sealed.2),
+        )
+    }
+
+    fn partial_eq(&self, other: &Self::Target) -> bool {
+        self.0.partial_eq(&other.0) && self.1.partial_eq(&other.1) && self.2.partial_eq(&other.2)
+    }
+}
+
 mod std_derives {
     use super::*;
 
