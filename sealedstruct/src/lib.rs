@@ -1,6 +1,6 @@
 mod stdimpl;
 use smallvec::SmallVec;
-use std::{collections::HashSet, fmt::Write};
+use std::{collections::HashSet, fmt::Write, num};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
@@ -188,6 +188,8 @@ sealed_to_self! {
     i8, i16, i32, i64, i128,
     f32, f64,
     usize, isize,
+    num::NonZeroU8, num::NonZeroU16, num::NonZeroU32, num::NonZeroU64, num::NonZeroU128,
+    num::NonZeroI8, num::NonZeroI16, num::NonZeroI32, num::NonZeroI64, num::NonZeroI128,
     bool,
     &'static str,
     String
