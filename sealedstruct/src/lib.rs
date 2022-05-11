@@ -9,11 +9,24 @@ pub mod prelude {
     pub use crate::{Sealable, ValidationResultExtensions};
 }
 
+// Can only be created by the default-Implementation of `Sealable::se`
+#[derive(Copy, Clone, Debug)]
 pub struct Sealed<T>(T);
 
-impl<T: Sealable> Sealed<T> {
-    pub fn new(raw: T) -> Result<Sealed<T::Target>> {
-        Ok(Sealed(raw.seal()?))
+impl<T> Sealed<T> {
+    pub fn new<TRaw: TryIntoSealed<Target = T>>(raw: TRaw) -> Result<Self> {
+        Ok(Sealed(raw.try_into_sealed()?))
+    }
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+
+impl<T> std::ops::Deref for Sealed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -25,7 +38,7 @@ impl<T: Sealable> Sealed<T> {
 /// - E.g. Generic types like
 ///
 /// Custom types derived from `Seal` usually implement TryIntoSealed only.
-/// RawSealedInterop is automatically implemented because `Seal`
+/// Sealable is automatically implemented because `Seal`
 /// generates PartialEq<Sealed> for Raw and From<Sealed> for Raw
 pub trait Sealable {
     type Target;
@@ -45,18 +58,18 @@ where
     T::Target: Into<T>,
     T: PartialEq<T::Target>,
 {
-    type Target = T::Target;
+    type Target = Sealed<T::Target>;
 
     fn seal(self) -> Result<Self::Target> {
-        self.try_into_sealed()
+        Sealed::new(self)
     }
 
     fn open(sealed: Self::Target) -> Self {
-        sealed.into()
+        sealed.0.into()
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {
-        self.eq(other)
+        self.eq(&other.0)
     }
 }
 
@@ -181,11 +194,19 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
 macro_rules! sealed_to_self {
     ($($type:ty),*) => {
         $(
-            impl TryIntoSealed for $type {
+            impl Sealable for $type {
                 type Target = Self;
 
-                fn try_into_sealed(self) -> Result<Self::Target> {
+                fn seal(self) -> Result<Self> {
                     Ok(self)
+                }
+
+                fn open(sealed: Self) -> Self {
+                    sealed
+                }
+
+                fn partial_eq(&self, other: &Self) -> bool {
+                    self.eq(other)
                 }
             }
         )*
