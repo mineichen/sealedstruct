@@ -10,7 +10,7 @@ pub mod prelude {
 }
 
 // Can only be created by the default-Implementation of `Sealable::se`
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct Sealed<T>(T);
 
 impl<T> Sealed<T> {

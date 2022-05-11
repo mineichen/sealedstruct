@@ -47,10 +47,14 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         impl From<#sealed_name> for #raw_name {
             fn from(input: #sealed_name) -> Self {
+                input.0.into()
+            }
+        }
+        impl From<#inner_name> for #raw_name {
+            fn from(input: #inner_name) -> Self {
                 #sealed_into_raw
             }
         }
-
 
         impl From<#result_name> for sealedstruct::Result<#sealed_name> {
             fn from(input: #result_name) -> Self {
@@ -63,6 +67,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         impl std::cmp::PartialEq<#sealed_name> for #raw_name {
             fn eq(&self, other: & #sealed_name ) -> bool {
                 #cmp_body
+            }
+        }
+        impl std::cmp::PartialEq<sealedstruct::Sealed<#sealed_name>> for #raw_name {
+            fn eq(&self, other: &sealedstruct::Sealed<#sealed_name>) -> bool {
+                let other = std::ops::Deref::deref(other);
+                self == other
             }
         }
     };
@@ -187,7 +197,6 @@ fn create_sealed_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident
                 });
 
                 quote! {
-                    let input = input.0;
                     #raw_name { #(#field_mappings)* }
                 }
             }
@@ -209,7 +218,7 @@ fn create_sealed_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident
                 }
             });
             quote! {
-                match input.0 {
+                match input {
                     #(#field_mappings)*
                 }
             }
