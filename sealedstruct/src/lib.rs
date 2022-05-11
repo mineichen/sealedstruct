@@ -6,7 +6,15 @@ pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
 
 pub mod prelude {
-    pub use crate::{RawSealedInterop, ValidationResultExtensions};
+    pub use crate::{Sealable, ValidationResultExtensions};
+}
+
+pub struct Sealed<T>(T);
+
+impl<T: Sealable> Sealed<T> {
+    pub fn new(raw: T) -> Result<Sealed<T::Target>> {
+        Ok(Sealed(raw.seal()?))
+    }
 }
 
 /// Usually, converting from Sealed to Raw is straight forward:
@@ -19,10 +27,10 @@ pub mod prelude {
 /// Custom types derived from `Seal` usually implement TryIntoSealed only.
 /// RawSealedInterop is automatically implemented because `Seal`
 /// generates PartialEq<Sealed> for Raw and From<Sealed> for Raw
-pub trait RawSealedInterop {
+pub trait Sealable {
     type Target;
-    fn try_into_sealed(self) -> Result<Self::Target>;
-    fn from_sealed(sealed: Self::Target) -> Self;
+    fn seal(self) -> Result<Self::Target>;
+    fn open(sealed: Self::Target) -> Self;
     // Necessary to compare without cloning
     fn partial_eq(&self, other: &Self::Target) -> bool;
 }
@@ -32,18 +40,18 @@ pub trait TryIntoSealed {
     fn try_into_sealed(self) -> Result<Self::Target>;
 }
 
-impl<T: TryIntoSealed> RawSealedInterop for T
+impl<T: TryIntoSealed> Sealable for T
 where
     T::Target: Into<T>,
     T: PartialEq<T::Target>,
 {
     type Target = T::Target;
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
+    fn seal(self) -> Result<Self::Target> {
         self.try_into_sealed()
     }
 
-    fn from_sealed(sealed: Self::Target) -> Self {
+    fn open(sealed: Self::Target) -> Self {
         sealed.into()
     }
 
@@ -195,40 +203,30 @@ sealed_to_self! {
     String
 }
 
-impl<T0: RawSealedInterop, T1: RawSealedInterop> RawSealedInterop for (T0, T1) {
+impl<T0: Sealable, T1: Sealable> Sealable for (T0, T1) {
     type Target = (T0::Target, T1::Target);
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        Ok((self.0.try_into_sealed()?, self.1.try_into_sealed()?))
+    fn seal(self) -> Result<Self::Target> {
+        Ok((self.0.seal()?, self.1.seal()?))
     }
 
-    fn from_sealed(sealed: Self::Target) -> Self {
-        (T0::from_sealed(sealed.0), T1::from_sealed(sealed.1))
+    fn open(sealed: Self::Target) -> Self {
+        (T0::open(sealed.0), T1::open(sealed.1))
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {
         self.0.partial_eq(&other.0) && self.1.partial_eq(&other.1)
     }
 }
-impl<T0: RawSealedInterop, T1: RawSealedInterop, T2: RawSealedInterop> RawSealedInterop
-    for (T0, T1, T2)
-{
+impl<T0: Sealable, T1: Sealable, T2: Sealable> Sealable for (T0, T1, T2) {
     type Target = (T0::Target, T1::Target, T2::Target);
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        Ok((
-            self.0.try_into_sealed()?,
-            self.1.try_into_sealed()?,
-            self.2.try_into_sealed()?,
-        ))
+    fn seal(self) -> Result<Self::Target> {
+        Ok((self.0.seal()?, self.1.seal()?, self.2.seal()?))
     }
 
-    fn from_sealed(sealed: Self::Target) -> Self {
-        (
-            T0::from_sealed(sealed.0),
-            T1::from_sealed(sealed.1),
-            T2::from_sealed(sealed.2),
-        )
+    fn open(sealed: Self::Target) -> Self {
+        (T0::open(sealed.0), T1::open(sealed.1), T2::open(sealed.2))
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {

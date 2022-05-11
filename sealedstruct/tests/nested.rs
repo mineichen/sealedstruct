@@ -4,7 +4,7 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
-    use sealedstruct::RawSealedInterop;
+    use sealedstruct::Sealable;
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -81,14 +81,14 @@ mod config {
 }
 #[test]
 fn sealed_numbers() {
-    let value = NumbersRaw::default().try_into_sealed().unwrap();
+    let value = NumbersRaw::default().seal().unwrap();
     assert_eq!(NumbersRaw::default(), value);
 
     let wrapper_sealed = WrapperRaw {
         numbers: NumbersRaw::default(),
         ..Default::default()
     }
-    .try_into_sealed()
+    .seal()
     .expect("This should be valid");
     let nr: &NumbersSealed = &wrapper_sealed.numbers;
 
@@ -99,7 +99,7 @@ fn sealed_numbers() {
             int8: 42,
             ..Default::default()
         },
-        NumbersRaw::default().try_into_sealed().unwrap()
+        NumbersRaw::default().seal().unwrap()
     )
 }
 
@@ -112,7 +112,7 @@ fn error_path() {
         },
         ..Default::default()
     }
-    .try_into_sealed();
+    .seal();
     match r {
         Ok(_) => panic!("Should be invalid"),
         Err(err) => {
@@ -141,5 +141,5 @@ fn test_collection_types() {
     let map = [(1i32, NumbersRaw::default())]
         .into_iter()
         .collect::<HashMap<_, _>>();
-    let x = map.try_into_sealed().unwrap();
+    let x = map.seal().unwrap();
 }

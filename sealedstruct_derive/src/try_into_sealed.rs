@@ -46,7 +46,7 @@ fn create_fields(data: &Data, result_name: &Ident) -> TokenStream {
                         let name_str = name.as_ref().expect("Has ident").to_string();
                         quote_spanned! {f.span()=>
                             #name: sealedstruct::prelude::ValidationResultExtensions::prepend_path(
-                                sealedstruct::RawSealedInterop::try_into_sealed(self.#name),
+                                sealedstruct::Sealable::seal(self.#name),
                                 #name_str
                             ),
                         }

@@ -1,28 +1,28 @@
-use crate::{RawSealedInterop, Result, ValidationResultExtensions};
+use crate::{Result, Sealable, ValidationResultExtensions};
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
     hash::Hash,
 };
 
-impl<TKey, TValue> RawSealedInterop for HashMap<TKey, TValue>
+impl<TKey, TValue> Sealable for HashMap<TKey, TValue>
 where
-    TKey: RawSealedInterop + Hash + Eq,
-    TValue: RawSealedInterop,
+    TKey: Sealable + Hash + Eq,
+    TValue: Sealable,
     TKey::Target: Hash + Eq + Borrow<TKey>,
 {
     type Target = HashMap<TKey::Target, TValue::Target>;
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
+    fn seal(self) -> Result<Self::Target> {
         self.into_iter()
-            .map(|(key, value)| key.try_into_sealed().combine(value.try_into_sealed()))
+            .map(|(key, value)| key.seal().combine(value.seal()))
             .collect()
     }
 
-    fn from_sealed(sealed: Self::Target) -> Self {
+    fn open(sealed: Self::Target) -> Self {
         sealed
             .into_iter()
-            .map(|(key, value)| (TKey::from_sealed(key), TValue::from_sealed(value)))
+            .map(|(key, value)| (TKey::open(key), TValue::open(value)))
             .collect()
     }
 
@@ -43,23 +43,18 @@ where
     }
 }
 
-impl<T> RawSealedInterop for Vec<T>
+impl<T> Sealable for Vec<T>
 where
-    T: RawSealedInterop,
+    T: Sealable,
 {
     type Target = Vec<T::Target>;
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        self.into_iter()
-            .map(RawSealedInterop::try_into_sealed)
-            .collect()
+    fn seal(self) -> Result<Self::Target> {
+        self.into_iter().map(Sealable::seal).collect()
     }
 
-    fn from_sealed(sealed: Self::Target) -> Self {
-        sealed
-            .into_iter()
-            .map(|value| T::from_sealed(value))
-            .collect()
+    fn open(sealed: Self::Target) -> Self {
+        sealed.into_iter().map(|value| T::open(value)).collect()
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {
@@ -75,23 +70,18 @@ where
     }
 }
 
-impl<T> RawSealedInterop for HashSet<T>
+impl<T> Sealable for HashSet<T>
 where
-    T: RawSealedInterop + Hash + Eq,
+    T: Sealable + Hash + Eq,
     T::Target: Hash + Eq + Borrow<T>,
 {
     type Target = HashSet<T::Target>;
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
-        self.into_iter()
-            .map(RawSealedInterop::try_into_sealed)
-            .collect()
+    fn seal(self) -> Result<Self::Target> {
+        self.into_iter().map(Sealable::seal).collect()
     }
-    fn from_sealed(sealed: Self::Target) -> Self {
-        sealed
-            .into_iter()
-            .map(|value| T::from_sealed(value))
-            .collect()
+    fn open(sealed: Self::Target) -> Self {
+        sealed.into_iter().map(|value| T::open(value)).collect()
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {
@@ -107,20 +97,20 @@ where
     }
 }
 
-impl<T> RawSealedInterop for Option<T>
+impl<T> Sealable for Option<T>
 where
-    T: RawSealedInterop,
+    T: Sealable,
 {
     type Target = Option<T::Target>;
 
-    fn try_into_sealed(self) -> Result<Self::Target> {
+    fn seal(self) -> Result<Self::Target> {
         match self {
-            Some(x) => x.try_into_sealed().map(Option::Some),
+            Some(x) => x.seal().map(Option::Some),
             None => Ok(None),
         }
     }
-    fn from_sealed(sealed: Self::Target) -> Self {
-        sealed.map(|value| T::from_sealed(value))
+    fn open(sealed: Self::Target) -> Self {
+        sealed.map(|value| T::open(value))
     }
 
     fn partial_eq(&self, other: &Self::Target) -> bool {

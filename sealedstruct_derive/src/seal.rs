@@ -78,7 +78,7 @@ fn create_cmp_raw_with_sealed_body(
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => fields.named.iter().fold(quote! { true }, |acc, f| {
                 let ident = &f.ident;
-                quote!( #acc && sealedstruct::RawSealedInterop::partial_eq(&self.#ident, &other.#ident))
+                quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
             }),
             Fields::Unnamed(ref _fields) => {
                 unimplemented!("Tuple-Structs are not supported yet");
@@ -181,7 +181,7 @@ fn create_sealed_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident
             Fields::Named(ref fields) => {
                 let field_mappings = fields.named.iter().map(|f| {
                     let ident = &f.ident;
-                    quote! { #ident: sealedstruct::RawSealedInterop::from_sealed(input.#ident),}
+                    quote! { #ident: sealedstruct::Sealable::open(input.#ident),}
                 });
 
                 quote! {
@@ -223,7 +223,7 @@ fn create_inner(data: &Data, inner_name: &Ident) -> TokenStream {
                     let name = &f.ident;
                     let ty = &f.ty;
                     quote_spanned! {f.span()=>
-                        pub #name: <#ty as sealedstruct::RawSealedInterop>::Target,
+                        pub #name: <#ty as sealedstruct::Sealable>::Target,
                     }
                 });
                 quote! {
@@ -267,13 +267,13 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
                 let recurse = fields.named.iter().map(|f| {
-                        let name = &f.ident;
-                        let ty = &f.ty;
-                        let vis = &f.vis;
-                        quote_spanned! {f.span()=>
-                            #vis #name: sealedstruct::Result<<#ty as sealedstruct::RawSealedInterop>::Target>,
-                        }
-                    });
+                    let name = &f.ident;
+                    let ty = &f.ty;
+                    let vis = &f.vis;
+                    quote_spanned! {f.span()=>
+                        #vis #name: sealedstruct::Result<<#ty as sealedstruct::Sealable>::Target>,
+                    }
+                });
                 quote! {
                     struct #result_name {
                         #(#recurse)*
