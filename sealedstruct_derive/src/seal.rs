@@ -51,12 +51,14 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
+
         impl From<#result_name> for sealedstruct::Result<#sealed_name> {
             fn from(input: #result_name) -> Self {
                 #result_into_sealed
             }
         }
-        // Todo: Reenable comparison
+
+
 
         impl std::cmp::PartialEq<#sealed_name> for #raw_name {
             fn eq(&self, other: & #sealed_name ) -> bool {

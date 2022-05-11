@@ -143,3 +143,11 @@ fn test_collection_types() {
         .collect::<HashMap<_, _>>();
     let x = map.seal().unwrap();
 }
+
+struct A;
+struct B;
+impl From<Sealed<A>> for B {
+    fn from(_: Sealed<A>) -> Self {
+        B
+    }
+}
