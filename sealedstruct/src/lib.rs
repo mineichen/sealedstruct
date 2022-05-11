@@ -11,8 +11,17 @@ pub mod prelude {
 
 // Can only be created by the default-Implementation of `Sealable::se`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Sealed<T>(T);
+
+#[cfg(feature = "serde")]
+impl<T: serde::Serialize> serde::Serialize for Sealed<T> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
 
 impl<T> Sealed<T> {
     pub fn new<TRaw: TryIntoSealed<Target = T>>(raw: TRaw) -> Result<Self> {
