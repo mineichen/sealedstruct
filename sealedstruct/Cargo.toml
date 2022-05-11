@@ -7,6 +7,7 @@ version = "0.1.0"
 
 [dependencies]
 sealedstruct_derive = {path = "../sealedstruct_derive"}
+serde = {version = "1", optional = true}
 smallvec = {version = "1.0", features = ["const_new"]}
 thiserror = "1"
 uuid = {version = "1", optional = true}
