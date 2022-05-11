@@ -44,6 +44,12 @@ mod config {
         Bar,
     }
 
+    #[derive(PartialEq, Debug, sealedstruct::IntoSealed)]
+    pub struct AlwaysValidStruct {
+        foo: i32,
+        bar: i32,
+    }
+
     impl Default for WrapperRaw {
         fn default() -> Self {
             Self {

@@ -9,10 +9,10 @@ pub fn derive_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenSt
     let struct_name = input.ident;
 
     let expanded = quote! {
-        impl Sealable for #struct_name {
+        impl sealedstruct::Sealable for #struct_name {
             type Target = Self;
 
-            fn seal(self) -> Result<Self> {
+            fn seal(self) -> sealedstruct::Result<Self> {
                 Ok(self)
             }
 
