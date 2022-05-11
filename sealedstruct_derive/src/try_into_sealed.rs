@@ -16,7 +16,7 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
 
     let struct_name_str = &raw_struct_name_str[..(raw_struct_name_str.len() - 3)];
     let struct_name = syn::Ident::new(struct_name_str, raw_struct_name.span());
-    let sealed_name = syn::Ident::new(&format!("{struct_name}Sealed"), raw_struct_name.span());
+    let inner_name = syn::Ident::new(&format!("{struct_name}Inner"), raw_struct_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name}Result"), raw_struct_name.span());
 
     // Generate an expression to sum up the heap size of each field.
@@ -24,7 +24,7 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
 
     let expanded = quote! {
         impl sealedstruct::TryIntoSealed for #raw_struct_name {
-            type Target = #sealed_name;
+            type Target = #inner_name;
 
             fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
                 #result
