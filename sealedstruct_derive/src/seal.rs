@@ -31,51 +31,55 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let cmp_body = create_cmp_raw_with_sealed_body(&input.data, &raw_name, &inner_name);
 
     let expanded = quote! {
-        #result
-        #inner
+            #result
+            #inner
 
-        #[derive(PartialEq, Debug)]
-        pub struct #sealed_name( #inner_name );
+            #[derive(PartialEq, Debug)]
+            pub struct #sealed_name( #inner_name );
 
-        impl std::ops::Deref for #sealed_name {
-            type Target = #inner_name;
+            impl std::ops::Deref for #sealed_name {
+                type Target = #inner_name;
 
-            fn deref(&self) -> &Self::Target {
-                &self.0
+                fn deref(&self) -> &Self::Target {
+                    &self.0
+                }
             }
-        }
 
-        impl From<#sealed_name> for #raw_name {
-            fn from(input: #sealed_name) -> Self {
-                input.0.into()
+            impl From<#sealed_name> for #raw_name {
+                fn from(input: #sealed_name) -> Self {
+                    input.0.into()
+                }
             }
-        }
-        impl From<#inner_name> for #raw_name {
-            fn from(input: #inner_name) -> Self {
-                #sealed_into_raw
+            impl From<#inner_name> for #raw_name {
+                fn from(input: #inner_name) -> Self {
+                    #sealed_into_raw
+                }
             }
-        }
 
-        impl From<#result_name> for sealedstruct::Result<#sealed_name> {
-            fn from(input: #result_name) -> Self {
-                #result_into_sealed
+            impl From<#result_name> for sealedstruct::Result<#sealed_name> {
+                fn from(input: #result_name) -> Self {
+                    #result_into_sealed
+                }
             }
-        }
+    /*
+            impl From<#result_name> for sealedstruct::Result<#inner_name> {
+                fn from(input: #result_name) -> Self {
 
+                }
+            } */
 
-
-        impl std::cmp::PartialEq<#sealed_name> for #raw_name {
-            fn eq(&self, other: & #sealed_name ) -> bool {
-                #cmp_body
+            impl std::cmp::PartialEq<#sealed_name> for #raw_name {
+                fn eq(&self, other: & #sealed_name ) -> bool {
+                    #cmp_body
+                }
             }
-        }
-        impl std::cmp::PartialEq<sealedstruct::Sealed<#sealed_name>> for #raw_name {
-            fn eq(&self, other: &sealedstruct::Sealed<#sealed_name>) -> bool {
-                let other = std::ops::Deref::deref(other);
-                self == other
+            impl std::cmp::PartialEq<sealedstruct::Sealed<#sealed_name>> for #raw_name {
+                fn eq(&self, other: &sealedstruct::Sealed<#sealed_name>) -> bool {
+                    let other = std::ops::Deref::deref(other);
+                    self == other
+                }
             }
-        }
-    };
+        };
 
     // Hand the output tokens back to the compiler.
     proc_macro::TokenStream::from(expanded)
