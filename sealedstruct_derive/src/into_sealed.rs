@@ -9,11 +9,19 @@ pub fn derive_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenSt
     let struct_name = input.ident;
 
     let expanded = quote! {
-        impl sealedstruct::TryIntoSealed for #struct_name {
+        impl Sealable for #struct_name {
             type Target = Self;
 
-            fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
+            fn seal(self) -> Result<Self> {
                 Ok(self)
+            }
+
+            fn open(sealed: Self) -> Self {
+                sealed
+            }
+
+            fn partial_eq(&self, other: &Self) -> bool {
+                self.eq(other)
             }
         }
     };
