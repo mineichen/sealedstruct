@@ -1,4 +1,4 @@
-use sealedstruct::Sealable;
+use sealedstruct::{Sealable, Sealed};
 use std::collections::{HashMap, HashSet};
 
 #[derive(
@@ -13,7 +13,7 @@ fn compare_hashmap() {
     let map = [(1, FooRaw { x: 42 })]
         .into_iter()
         .collect::<HashMap<i32, FooRaw>>();
-    let mut sealed_map = map.clone().seal().unwrap();
+    let mut sealed_map: HashMap<i32, Sealed<Foo>> = map.clone().seal().unwrap();
 
     assert!(map.partial_eq(&sealed_map));
     let mut clone_map = map.clone();
@@ -24,7 +24,6 @@ fn compare_hashmap() {
     clone_map.insert(2, value);
     assert!(!clone_map.partial_eq(&sealed_map));
 
-    // Todo: Shouldn't be possible anymore with SealedHashMap etc.
     sealed_map.remove(&1);
     assert!(!map.partial_eq(&sealed_map));
 }

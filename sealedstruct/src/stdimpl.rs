@@ -39,7 +39,7 @@ where
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -93,7 +93,7 @@ where
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -117,7 +117,7 @@ where
         match (self, other) {
             (None, None) => true,
             (None, Some(_)) | (Some(_), None) => false,
-            (Some(a), Some(b)) => a.partial_eq(&b),
+            (Some(a), Some(b)) => a.partial_eq(b),
         }
     }
 }

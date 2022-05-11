@@ -18,62 +18,32 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
-    let inner_name = syn::Ident::new(&format!("{struct_name_str}Inner"), raw_name.span());
-    let sealed_name = syn::Ident::new(&format!("{struct_name_str}Sealed"), raw_name.span());
+    let inner_name = syn::Ident::new(struct_name_str, raw_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
     let inner = create_inner(&input.data, &inner_name);
     let result = create_result_fields(&input.data, &result_name);
-    let result_into_sealed =
-        create_result_into_sealed_body(&input.data, &sealed_name, &inner_name, &result_name);
-    let sealed_into_raw = create_sealed_into_raw_body(&input.data, &inner_name, &raw_name);
-    let cmp_body = create_cmp_raw_with_sealed_body(&input.data, &raw_name, &inner_name);
+    let result_into_inner = create_result_into_inner_body(&input.data, &inner_name, &result_name);
+    let inner_into_raw = create_inner_into_raw_body(&input.data, &inner_name, &raw_name);
+    let cmp_body = create_cmp_raw_with_inner_body(&input.data, &raw_name, &inner_name);
 
     let expanded = quote! {
         #result
         #inner
 
-        #[derive(PartialEq, Debug)]
-        pub struct #sealed_name( #inner_name );
-
-        impl std::ops::Deref for #sealed_name {
-            type Target = #inner_name;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl From<#sealed_name> for #raw_name {
-            fn from(input: #sealed_name) -> Self {
-                input.0.into()
-            }
-        }
         impl From<#inner_name> for #raw_name {
             fn from(input: #inner_name) -> Self {
-                #sealed_into_raw
-            }
-        }
-
-        impl From<#result_name> for sealedstruct::Result<#sealed_name> {
-            fn from(input: #result_name) -> Self {
-                Ok(#sealed_name(sealedstruct::Result::<#inner_name>::from(input)?))
+                #inner_into_raw
             }
         }
 
         impl From<#result_name> for sealedstruct::Result<#inner_name> {
             fn from(input: #result_name) -> Self {
-                #result_into_sealed
+                #result_into_inner
             }
         }
 
-        impl std::cmp::PartialEq<#sealed_name> for #raw_name {
-            fn eq(&self, other: & #sealed_name ) -> bool {
-                let other: & #inner_name = other;
-                self == other
-            }
-        }
         impl std::cmp::PartialEq<#inner_name> for #raw_name {
             fn eq(&self, other: & #inner_name ) -> bool {
                 #cmp_body
@@ -85,19 +55,13 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 self == other
             }
         }
-        impl std::cmp::PartialEq<sealedstruct::Sealed<#sealed_name>> for #raw_name {
-            fn eq(&self, other: &sealedstruct::Sealed<#sealed_name>) -> bool {
-                let other = std::ops::Deref::deref(other);
-                self == other
-            }
-        }
     };
 
     // Hand the output tokens back to the compiler.
     proc_macro::TokenStream::from(expanded)
 }
 
-fn create_cmp_raw_with_sealed_body(
+fn create_cmp_raw_with_inner_body(
     data: &Data,
     raw_name: &Ident,
     inner_name: &Ident,
@@ -136,9 +100,8 @@ fn create_cmp_raw_with_sealed_body(
     }
 }
 
-fn create_result_into_sealed_body(
+fn create_result_into_inner_body(
     data: &Data,
-    sealed_name: &Ident,
     inner_name: &Ident,
     result_name: &Ident,
 ) -> TokenStream {
@@ -203,7 +166,7 @@ fn create_result_into_sealed_body(
         Data::Union(_) => unimplemented!(),
     }
 }
-fn create_sealed_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident) -> TokenStream {
+fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
@@ -313,8 +276,8 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
         },
         Data::Enum(ref e) => {
             let recurse = e.variants.iter().map(|variant| match &variant.fields {
-                Fields::Named(x) => unimplemented!("Enums with named fields are not supported"),
-                Fields::Unnamed(x) => unimplemented!("Enums with unnamed fields are not supported"),
+                Fields::Named(_) => unimplemented!("Enums with named fields are not supported"),
+                Fields::Unnamed(_) => unimplemented!("Enums with unnamed fields are not supported"),
                 Fields::Unit => {
                     let x = &variant.ident;
                     quote! {#x,}

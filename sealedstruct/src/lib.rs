@@ -87,7 +87,7 @@ impl std::fmt::Display for ValidationErrors {
             for x in iter.by_ref().take(4) {
                 f.write_fmt(format_args!(", {}{}{}", "", x, ""))?;
             }
-            if let Some(_) = iter.next() {
+            if iter.next().is_some() {
                 f.write_str(", ...")?;
             }
         }
@@ -106,9 +106,9 @@ impl ValidationErrors {
     }
 }
 
-impl Into<ValidationErrors> for ValidationError {
-    fn into(self) -> ValidationErrors {
-        ValidationErrors::new(self)
+impl From<ValidationError> for ValidationErrors {
+    fn from(e: ValidationError) -> Self {
+        ValidationErrors::new(e)
     }
 }
 

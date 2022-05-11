@@ -4,7 +4,6 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
-    use sealedstruct::Sealable;
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -61,7 +60,7 @@ mod config {
     }
 
     impl sealedstruct::TryIntoSealed for NumbersRaw {
-        type Target = NumbersSealed;
+        type Target = Numbers;
 
         fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
             NumbersResult {
@@ -90,7 +89,7 @@ fn sealed_numbers() {
     }
     .seal()
     .expect("This should be valid");
-    let nr: &NumbersSealed = &wrapper_sealed.numbers;
+    let nr: &Numbers = &wrapper_sealed.numbers;
 
     assert_eq!(0i8, nr.int8);
 
@@ -134,12 +133,12 @@ fn test_collection_types() {
     pub struct OuterRaw {
         map: Option<InnerRaw>,
     }
-    let r = OuterResult {
+    OuterResult {
         map: Ok(None), //map: Ok([(1i32, InnerSealed(InnerInner {}))].into_iter().collect()),
     };
 
     let map = [(1i32, NumbersRaw::default())]
         .into_iter()
         .collect::<HashMap<_, _>>();
-    let x = map.seal().unwrap();
+    map.seal().unwrap();
 }
