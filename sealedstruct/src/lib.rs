@@ -1,6 +1,6 @@
 mod stdimpl;
 use smallvec::SmallVec;
-use std::{collections::HashSet, fmt::Write, num};
+use std::{collections::HashSet, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
@@ -262,6 +262,25 @@ impl<T0: Sealable, T1: Sealable, T2: Sealable> Sealable for (T0, T1, T2) {
 
     fn partial_eq(&self, other: &Self::Target) -> bool {
         self.0.partial_eq(&other.0) && self.1.partial_eq(&other.1) && self.2.partial_eq(&other.2)
+    }
+}
+
+impl<T: Sealable + Clone> Sealable for Arc<T>
+where
+    T::Target: Clone,
+{
+    type Target = Arc<T::Target>;
+
+    fn seal(self) -> Result<Self::Target> {
+        T::clone(&self).seal().map(Arc::new)
+    }
+
+    fn open(sealed: Self::Target) -> Self {
+        Arc::new(Sealable::open(T::Target::clone(&sealed)))
+    }
+
+    fn partial_eq(&self, other: &Self::Target) -> bool {
+        <T as Sealable>::partial_eq(self, other)
     }
 }
 
