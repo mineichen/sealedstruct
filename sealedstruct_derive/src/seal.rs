@@ -212,8 +212,9 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: Visibility) -> TokenStream
                 let recurse = fields.named.iter().map(|f| {
                     let name = &f.ident;
                     let ty = &f.ty;
+                    let vis = &f.vis;
                     quote_spanned! {f.span()=>
-                        pub #name: <#ty as sealedstruct::Sealable>::Target,
+                        #vis #name: <#ty as sealedstruct::Sealable>::Target,
                     }
                 });
                 quote! {
@@ -284,7 +285,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                 }
             });
             quote! {
-                pub enum #result_name {
+                enum #result_name {
                     #(#recurse)*
                 }
             }
