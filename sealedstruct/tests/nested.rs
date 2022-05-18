@@ -84,6 +84,14 @@ mod config {
         }
     }
 }
+
+#[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+pub(crate) struct RootRaw {
+    pub child: ChildRaw,
+}
+
+#[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+pub(crate) struct ChildRaw {}
 #[test]
 fn sealed_numbers() {
     let value = NumbersRaw::default().seal().unwrap();

@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -22,7 +22,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
-    let inner = create_inner(&input.data, &inner_name);
+    let inner = create_inner(&input.data, &inner_name, input.vis);
     let result = create_result_fields(&input.data, &result_name);
     let result_into_inner = create_result_into_inner_body(&input.data, &inner_name, &result_name);
     let inner_into_raw = create_inner_into_raw_body(&input.data, &inner_name, &raw_name);
@@ -205,7 +205,7 @@ fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident)
         Data::Union(_) => unimplemented!(),
     }
 }
-fn create_inner(data: &Data, inner_name: &Ident) -> TokenStream {
+fn create_inner(data: &Data, inner_name: &Ident, vis: Visibility) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
@@ -218,7 +218,7 @@ fn create_inner(data: &Data, inner_name: &Ident) -> TokenStream {
                 });
                 quote! {
                     #[derive(PartialEq, Debug)]
-                    pub struct #inner_name {
+                    #vis struct #inner_name {
                         #(#recurse)*
                     }
                 }
@@ -243,7 +243,7 @@ fn create_inner(data: &Data, inner_name: &Ident) -> TokenStream {
             });
             quote! {
                 #[derive(PartialEq, Debug)]
-                pub enum #inner_name {
+                #vis enum #inner_name {
                     #(#recurse)*
                 }
             }
