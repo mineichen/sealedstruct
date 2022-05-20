@@ -1,9 +1,12 @@
 mod stdimpl;
+mod wrapper;
+
 use smallvec::SmallVec;
 use std::{collections::HashSet, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
+pub use wrapper::*;
 
 pub mod prelude {
     pub use crate::{Sealable, ValidationResultExtensions};
