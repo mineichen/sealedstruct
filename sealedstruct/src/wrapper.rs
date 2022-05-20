@@ -6,7 +6,7 @@ use crate::Sealable;
 /// It transparently forwards most standard implementations to it's inner component
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct IntoSealedWrapper<T>(T);
+pub struct IntoSealedWrapper<T>(T);
 
 impl<T: PartialEq> Sealable for IntoSealedWrapper<T> {
     type Target = IntoSealedWrapper<T>;
