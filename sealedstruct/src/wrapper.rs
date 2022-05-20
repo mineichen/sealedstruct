@@ -37,6 +37,12 @@ impl<T: PartialEq> DerefMut for IntoSealedWrapper<T> {
     }
 }
 
+impl<T: PartialEq> From<T> for IntoSealedWrapper<T> {
+    fn from(i: T) -> Self {
+        IntoSealedWrapper(i)
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<T: serde::Serialize> serde::Serialize for IntoSealedWrapper<T> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
