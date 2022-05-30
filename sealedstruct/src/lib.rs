@@ -306,7 +306,7 @@ mod uuid_derives {
 }
 
 #[cfg(feature = "chrono")]
-mod uuid_derives {
+mod chrono_derives {
     use super::*;
     sealed_to_self! {
         chrono::DateTime<chrono::Utc>
