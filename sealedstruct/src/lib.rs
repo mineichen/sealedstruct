@@ -184,7 +184,7 @@ pub trait ValidationResultExtensions {
     type Ok;
     fn combine<T>(self, other: Result<T>) -> Result<(Self::Ok, T)>;
     fn prepend_path(self, path: &str) -> Self;
-    fn with_sealed_error(self, error: ValidationError) -> Self;
+    fn append_error(self, error: ValidationError) -> Self;
 }
 
 impl<TOwn> ValidationResultExtensions for Result<TOwn> {
@@ -217,7 +217,7 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
         })
     }
 
-    fn with_sealed_error(self, error: ValidationError) -> Self {
+    fn append_error(self, error: ValidationError) -> Self {
         match self {
             Ok(_) => error.into(),
             Err(prev) => Err(prev.combine_with(ValidationErrors::new(error))),
@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn add_error_to_ok_result() {
         let mut result = super::Result::Ok(1);
-        result = result.with_sealed_error(ValidationError::on_fields("Foo", [], "FooError"));
+        result = result.append_error(ValidationError::on_fields("Foo", [], "FooError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
@@ -361,7 +361,7 @@ mod tests {
     fn add_error_to_err_result() {
         let mut result: super::Result<()> =
             ValidationError::on_fields("Foo", [], "FooError").into();
-        result = result.with_sealed_error(ValidationError::on_fields("Bar", [], "BarError"));
+        result = result.append_error(ValidationError::on_fields("Bar", [], "BarError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
