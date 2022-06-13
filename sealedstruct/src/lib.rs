@@ -2,13 +2,7 @@ mod stdimpl;
 mod wrapper;
 
 use smallvec::SmallVec;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-    hash::Hash,
-    num,
-    sync::Arc,
-};
+use std::{collections::HashMap, fmt::Write, hash::Hash, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
@@ -113,11 +107,6 @@ impl std::fmt::Display for ValidationErrors {
                 }
             }
         }
-        /*
-        f.debug_map()
-            //.entries([("key", &SmallVec::from_const(["Value"]))].into_iter())
-            .entries(map.into_iter().map(|(a, b)| (a, b)))
-            .finish()?; */
 
         let mut iter = map.into_iter();
         if let Some((first, first_reasons)) = iter.next() {
@@ -163,7 +152,7 @@ impl IntoIterator for ValidationErrors {
 #[derive(Debug, PartialEq)]
 pub struct ValidationError {
     fields: SmallVec<[String; 1]>,
-    reason: String,
+    pub reason: String,
 }
 
 impl ValidationError {
@@ -417,8 +406,7 @@ mod tests {
 
     #[test]
     fn format_validation_error() {
-        let result: super::Result<()> =
-            ValidationError::on_fields("Foo", [], "CustomMessage").into();
+        let result: super::Result<()> = ValidationError::on_field("Foo", "CustomMessage").into();
         let result = result.prepend_path("Baz");
         let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
 
