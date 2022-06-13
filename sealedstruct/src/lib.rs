@@ -142,7 +142,7 @@ pub struct ValidationError {
 }
 
 impl ValidationError {
-    pub fn new(field: impl Into<String>) -> Self {
+    pub fn new(reason: impl Into<String>) -> Self {
         Self {
             fields: SmallVec::from_const(["".into()]),
             reason: reason.into(),
