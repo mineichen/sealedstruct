@@ -144,13 +144,6 @@ pub struct ValidationError {
 impl ValidationError {
     pub fn new(field: impl Into<String>) -> Self {
         Self {
-            fields: SmallVec::from_const([field.into()]),
-            reason: "".into(),
-        }
-    }
-
-    pub fn with_reason(reason: impl Into<String>) -> Self {
-        Self {
             fields: SmallVec::from_const(["".into()]),
             reason: reason.into(),
         }
@@ -163,7 +156,7 @@ impl ValidationError {
         }
     }
 
-    pub fn with_fields<TField: Into<String>>(
+    pub fn on_fields<TField: Into<String>>(
         first: TField,
         rest: impl IntoIterator<Item = TField>,
         reason: impl Into<String>,
@@ -350,7 +343,7 @@ mod tests {
     #[test]
     fn add_error_to_ok_result() {
         let mut result = super::Result::Ok(1);
-        result = result.with_sealed_error(ValidationError::with_fields("Foo", [], "FooError"));
+        result = result.with_sealed_error(ValidationError::on_fields("Foo", [], "FooError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
@@ -367,8 +360,8 @@ mod tests {
     #[test]
     fn add_error_to_err_result() {
         let mut result: super::Result<()> =
-            ValidationError::with_fields("Foo", [], "FooError").into();
-        result = result.with_sealed_error(ValidationError::with_fields("Bar", [], "BarError"));
+            ValidationError::on_fields("Foo", [], "FooError").into();
+        result = result.with_sealed_error(ValidationError::on_fields("Bar", [], "BarError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
@@ -400,7 +393,7 @@ mod tests {
     #[test]
     fn format_validation_error() {
         let result: super::Result<()> =
-            ValidationError::with_fields("Foo", [], "CustomMessage").into();
+            ValidationError::on_fields("Foo", [], "CustomMessage").into();
         let result = result.prepend_path("Baz");
         let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
 
