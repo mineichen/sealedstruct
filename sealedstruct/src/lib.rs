@@ -2,7 +2,13 @@ mod stdimpl;
 mod wrapper;
 
 use smallvec::SmallVec;
-use std::{collections::HashSet, fmt::Write, num, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    hash::Hash,
+    num,
+    sync::Arc,
+};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
@@ -92,20 +98,39 @@ pub struct ValidationErrors(SmallVec<[ValidationError; 1]>);
 // Format is used for summary-purpose only and doesn't output real JSON by choice.
 impl std::fmt::Display for ValidationErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ValidationErrors({}): [", self.0.len()))?;
-        let set: HashSet<&str> = self.0.iter().flat_map(|x| x.iter_fields()).collect();
-        let mut iter = set.into_iter();
-        if let Some(first) = iter.next() {
-            f.write_fmt(format_args!("{}{}{}", "", first, ""))?;
-            for x in iter.by_ref().take(4) {
-                f.write_fmt(format_args!(", {}{}{}", "", x, ""))?;
+        f.write_fmt(format_args!("ValidationErrors({}): {}", self.0.len(), '{'))?;
+        let mut map: HashMap<&str, SmallVec<[&str; 1]>> = HashMap::new();
+
+        for error in self.0.iter() {
+            for field in error.iter_fields() {
+                match map.entry(field) {
+                    std::collections::hash_map::Entry::Occupied(mut e) => {
+                        e.get_mut().push(error.reason.as_str());
+                    }
+                    std::collections::hash_map::Entry::Vacant(e) => {
+                        e.insert(SmallVec::from_const([error.reason.as_str()]));
+                    }
+                }
+            }
+        }
+        /*
+        f.debug_map()
+            //.entries([("key", &SmallVec::from_const(["Value"]))].into_iter())
+            .entries(map.into_iter().map(|(a, b)| (a, b)))
+            .finish()?; */
+
+        let mut iter = map.into_iter();
+        if let Some((first, first_reasons)) = iter.next() {
+            f.write_fmt(format_args!("{}: {:?}", first, first_reasons))?;
+            for (x, x_reasons) in iter.by_ref().take(4) {
+                f.write_fmt(format_args!(", {}: {:?}", x, x_reasons))?;
             }
             if iter.next().is_some() {
                 f.write_str(", ...")?;
             }
         }
 
-        f.write_char(']')
+        f.write_char('}')
     }
 }
 
@@ -398,7 +423,7 @@ mod tests {
         let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
 
         assert_eq!(
-            "ValidationErrors(1): [Baz.Foo]".to_string(),
+            "ValidationErrors(1): {Baz.Foo: [\"CustomMessage\"]}".to_string(),
             error.to_string()
         );
     }
