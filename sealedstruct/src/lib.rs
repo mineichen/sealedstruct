@@ -131,6 +131,10 @@ impl ValidationErrors {
         self.0.extend(other.0.into_iter());
         self
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ValidationError> {
+        self.0.iter()
+    }
 }
 
 impl From<ValidationError> for ValidationErrors {
