@@ -138,17 +138,40 @@ impl IntoIterator for ValidationErrors {
 #[derive(Debug, PartialEq)]
 pub struct ValidationError {
     fields: SmallVec<[String; 1]>,
+    reason: String,
 }
 
 impl ValidationError {
     pub fn new(field: impl Into<String>) -> Self {
         Self {
             fields: SmallVec::from_const([field.into()]),
+            reason: "".into(),
         }
     }
 
-    pub fn with_fields<T: Into<String>>(first: T, rest: impl IntoIterator<Item = T>) -> Self {
-        let mut r = Self::new(first);
+    pub fn with_reason(reason: impl Into<String>) -> Self {
+        Self {
+            fields: SmallVec::from_const(["".into()]),
+            reason: reason.into(),
+        }
+    }
+
+    pub fn on_field(field: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self {
+            fields: SmallVec::from_const([field.into()]),
+            reason: reason.into(),
+        }
+    }
+
+    pub fn with_fields<TField: Into<String>>(
+        first: TField,
+        rest: impl IntoIterator<Item = TField>,
+        reason: impl Into<String>,
+    ) -> Self {
+        let mut r = Self {
+            fields: SmallVec::from_const([first.into()]),
+            reason: reason.into(),
+        };
         r.fields.extend(rest.into_iter().map(|x| x.into()));
         r
     }
@@ -187,8 +210,13 @@ impl<TOwn> ValidationResultExtensions for Result<TOwn> {
         self.map_err(|mut errors| {
             for error in errors.0.iter_mut() {
                 for field in error.fields.iter_mut() {
-                    field.reserve(path.len() + 1);
-                    field.insert(0, '.');
+                    if !field.is_empty() {
+                        field.reserve(path.len() + 1);
+                        field.insert(0, '.');
+                    } else {
+                        field.reserve(path.len());
+                    }
+
                     field.insert_str(0, path);
                 }
             }
@@ -315,14 +343,14 @@ mod chrono_derives {
 
 #[cfg(test)]
 mod tests {
-    use crate::ValidationError;
+    use crate::{ValidationError, ValidationErrors};
 
     use super::prelude::*;
 
     #[test]
     fn add_error_to_ok_result() {
         let mut result = super::Result::Ok(1);
-        result = result.with_sealed_error(ValidationError::new("Foo"));
+        result = result.with_sealed_error(ValidationError::with_fields("Foo", [], "FooError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
@@ -338,8 +366,9 @@ mod tests {
 
     #[test]
     fn add_error_to_err_result() {
-        let mut result: super::Result<()> = ValidationError::new("Foo").into();
-        result = result.with_sealed_error(ValidationError::new("Bar"));
+        let mut result: super::Result<()> =
+            ValidationError::with_fields("Foo", [], "FooError").into();
+        result = result.with_sealed_error(ValidationError::with_fields("Bar", [], "BarError"));
         let mut errors = result.unwrap_err().into_iter();
 
         assert_eq!(
@@ -361,8 +390,17 @@ mod tests {
     }
 
     #[test]
+    fn comine_errors() {
+        let error1: ValidationErrors = ValidationError::on_field("Foo", "FooError").into();
+        let error2 = ValidationError::on_field("Foo", "FooError").into();
+        let combined = error1.combine_with(error2);
+        assert_eq!(2, combined.into_iter().count());
+    }
+
+    #[test]
     fn format_validation_error() {
-        let result: super::Result<()> = ValidationError::new("Foo").into();
+        let result: super::Result<()> =
+            ValidationError::with_fields("Foo", [], "CustomMessage").into();
         let result = result.prepend_path("Baz");
         let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
 

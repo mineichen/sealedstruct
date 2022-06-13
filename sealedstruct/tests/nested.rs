@@ -40,7 +40,6 @@ mod config {
 
     #[derive(PartialEq, Debug, sealedstruct::IntoSealed)]
     pub enum AlwaysValid {
-        Foo,
         Bar,
     }
 
@@ -73,9 +72,13 @@ mod config {
                 int8: if self.int8 < 100 {
                     Ok(self.int8)
                 } else {
-                    sealedstruct::ValidationError::new("int8").into()
+                    sealedstruct::ValidationError::with_reason("must be <100").into()
                 },
-                int16: Ok(self.int16),
+                int16: if self.int16 != i16::MAX {
+                    Ok(self.int16)
+                } else {
+                    sealedstruct::ValidationError::with_reason("max is not allowed").into()
+                },
                 int32: Ok(self.int32),
                 int64: Ok(self.int64),
                 int128: Ok(self.int128),
@@ -121,6 +124,7 @@ fn error_path() {
     let r = WrapperRaw {
         numbers: NumbersRaw {
             int8: 127i8,
+            int16: i16::MAX,
             ..Default::default()
         },
         ..Default::default()
@@ -130,10 +134,23 @@ fn error_path() {
         Ok(_) => panic!("Should be invalid"),
         Err(err) => {
             let mut into_iter = err.into_iter();
-            let error = into_iter.next().expect("One error");
             assert_eq!(
                 "numbers.int8",
-                error.iter_fields().next().expect("Expect one field")
+                into_iter
+                    .next()
+                    .expect("One error")
+                    .iter_fields()
+                    .next()
+                    .expect("Expect one field")
+            );
+            assert_eq!(
+                "numbers.int16",
+                into_iter
+                    .next()
+                    .expect("One error")
+                    .iter_fields()
+                    .next()
+                    .expect("Expect second field")
             );
         }
     }

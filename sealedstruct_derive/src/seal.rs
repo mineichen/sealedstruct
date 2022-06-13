@@ -113,15 +113,21 @@ fn create_result_into_inner_body(
                         .named
                         .iter()
                         .map(|f| f.ident.clone().into_token_stream());
-                    let mut ident_iter = fields.named.iter().map(|f| f.ident.clone());
+                    let mut ident_iter = fields.named.iter().flat_map(|f| f.ident.clone());
                     let field_list = match ident_iter.next() {
                         Some(first) => {
+                            let first_string = first.to_string();
                             let (fields, assign) = ident_iter.fold(
-                                (first.clone().into_token_stream(), quote!(input.#first)),
+                                (first.to_token_stream(), quote!{
+                                    sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#first, #first_string)
+                                }),
                                 |(fields_list, assign), next| {
+                                    let next_text = next.to_string(); 
                                     (
                                         quote! {(#fields_list, #next)},
-                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, input.#next) },
+                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
+                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text)) 
+                                        },
                                     )
                                 },
                             );
@@ -131,7 +137,7 @@ fn create_result_into_inner_body(
                                 let #fields = #assign?;
                             }
                         }
-                        None => TokenStream::new(),
+                        _ => TokenStream::new(),
                     };
                     quote! {
                         #field_list

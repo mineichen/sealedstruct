@@ -43,12 +43,8 @@ fn create_fields(data: &Data, result_name: &Ident) -> TokenStream {
                 Fields::Named(ref fields) => {
                     let recurse = fields.named.iter().map(|f| {
                         let name = &f.ident;
-                        let name_str = name.as_ref().expect("Has ident").to_string();
                         quote_spanned! {f.span()=>
-                            #name: sealedstruct::prelude::ValidationResultExtensions::prepend_path(
-                                sealedstruct::Sealable::seal(self.#name),
-                                #name_str
-                            ),
+                            #name: sealedstruct::Sealable::seal(self.#name),
                         }
                     });
                     quote! {
