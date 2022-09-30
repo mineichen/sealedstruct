@@ -13,7 +13,7 @@ fn compare_hashmap() {
     let map = [(1, FooRaw { x: 42 })]
         .into_iter()
         .collect::<HashMap<i32, FooRaw>>();
-    let mut sealed_map: HashMap<i32, Sealed<Foo>> = map.clone().seal().unwrap();
+    let mut sealed_map: HashMap<i32, Sealed<FooInner>> = map.clone().seal().unwrap();
 
     assert!(map.partial_eq(&sealed_map));
     let mut clone_map = map.clone();

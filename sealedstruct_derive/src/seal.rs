@@ -18,7 +18,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
-    let inner_name = syn::Ident::new(struct_name_str, raw_name.span());
+    let inner_name = syn::Ident::new(&format!("{struct_name_str}Inner"), raw_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
