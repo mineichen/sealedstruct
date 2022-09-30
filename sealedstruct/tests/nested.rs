@@ -95,6 +95,18 @@ pub(crate) struct RootRaw {
 
 #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
 pub(crate) struct ChildRaw {}
+
+#[derive(PartialEq, Default, Debug, sealedstruct::SealSimple, sealedstruct::Validator)]
+pub struct SimpleRaw {
+    pub inner: i8,
+}
+
+#[test]
+fn sealed_numbers_simple() {
+    let raw = SimpleRaw { inner: 0 };
+    let _sealed: Simple = raw.try_into().unwrap();
+}
+
 #[test]
 fn sealed_numbers() {
     let value = NumbersRaw::default().seal().unwrap();

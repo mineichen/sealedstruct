@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 use std::{collections::HashMap, fmt::Write, hash::Hash, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
-pub use sealedstruct_derive::{IntoSealed, Seal, TryIntoSealed};
+pub use sealedstruct_derive::{IntoSealed, Seal, SealSimple, TryIntoSealed, Validator};
 pub use wrapper::*;
 
 pub mod prelude {
@@ -59,6 +59,10 @@ pub trait Sealable {
     fn open(sealed: Self::Target) -> Self;
     // Necessary to compare without cloning
     fn partial_eq(&self, other: &Self::Target) -> bool;
+}
+
+pub trait Validator {
+    fn check(&self) -> Result<()>;
 }
 
 pub trait TryIntoSealed {
