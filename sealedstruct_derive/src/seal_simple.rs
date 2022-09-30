@@ -70,6 +70,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
+        impl<T: std::fmt::Display> std::fmt::Display for #wrapper_name<T> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default, sealedstruct::IntoSealed)]
         pub struct #wrapper_name<T=#raw_name>(T);
 
