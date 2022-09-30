@@ -18,8 +18,10 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
-    let wrapper_name = syn::Ident::new(&format!("{struct_name_str}"), raw_name.span());
+    let facade_name = syn::Ident::new(&format!("{struct_name_str}"), raw_name.span());
+    let wrapper_name = syn::Ident::new(&format!("{struct_name_str}Impl"), raw_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
+    let input_vis = input.vis;
 
     // Generate an expression to sum up the heap size of each field.
     let result = create_result_fields(&input.data, &result_name);
@@ -54,6 +56,8 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         #result
         
         #serde_wrapper
+        
+        #input_vis type #facade_name = #wrapper_name<#raw_name>;
 
         impl<T: sealedstruct::Validator + From<#raw_name>> TryFrom<#raw_name> for #wrapper_name<T> {
             type Error = sealedstruct::ValidationErrors;
