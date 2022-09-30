@@ -64,6 +64,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
+        impl #raw_name {
+            fn seal(self) -> sealedstruct::Result<#wrapper_name> {
+                self.try_into()
+            }
+        }
+
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default, sealedstruct::IntoSealed)]
         pub struct #wrapper_name<T=#raw_name>(T);
 
