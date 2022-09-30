@@ -65,19 +65,19 @@ mod config {
     }
 
     impl sealedstruct::TryIntoSealed for NumbersRaw {
-        type Target = Numbers;
+        type Target = NumbersInner;
 
         fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
             NumbersResult {
                 int8: if self.int8 < 100 {
                     Ok(self.int8)
                 } else {
-                    sealedstruct::ValidationError::with_reason("must be <100").into()
+                    sealedstruct::ValidationError::new("must be <100").into()
                 },
                 int16: if self.int16 != i16::MAX {
                     Ok(self.int16)
                 } else {
-                    sealedstruct::ValidationError::with_reason("max is not allowed").into()
+                    sealedstruct::ValidationError::new("max is not allowed").into()
                 },
                 int32: Ok(self.int32),
                 int64: Ok(self.int64),
@@ -106,7 +106,7 @@ fn sealed_numbers() {
     }
     .seal()
     .expect("This should be valid");
-    let nr: &Numbers = &wrapper_sealed.numbers;
+    let nr: &NumbersInner = &wrapper_sealed.numbers;
 
     assert_eq!(0i8, nr.int8);
 
