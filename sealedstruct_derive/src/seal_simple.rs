@@ -74,6 +74,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
+        impl #wrapper_name {
+            fn new_unchecked(raw: #raw_name) -> Self {
+                Self(raw)
+            }
+        }
+
         impl<T: std::fmt::Display> std::fmt::Display for #wrapper_name<T> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt(f)
