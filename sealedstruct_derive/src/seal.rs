@@ -18,16 +18,18 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     }
 
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
-    let wrapper_name = syn::Ident::new(&format!("{struct_name_str}"), raw_name.span());
+    let facade_name = syn::Ident::new(&format!("{struct_name_str}"), raw_name.span());
+    let wrapper_name = syn::Ident::new(&format!("{struct_name_str}Wrapper"), raw_name.span());
     let inner_name = syn::Ident::new(&format!("{struct_name_str}Inner"), raw_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
-    let inner = create_inner(&input.data, &inner_name, input.vis);
+    let inner = create_inner(&input.data, &inner_name, &input.vis);
     let result = create_result_fields(&input.data, &result_name);
     let result_into_inner = create_result_into_inner_body(&input.data, &inner_name, &result_name);
     let inner_into_raw = create_inner_into_raw_body(&input.data, &inner_name, &raw_name);
     let cmp_body = create_cmp_raw_with_inner_body(&input.data, &raw_name, &inner_name);
+    let input_vis = input.vis;
     
     #[cfg(feature = "serde")]
     let serde_wrapper = quote! {
@@ -48,6 +50,9 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         #inner
 
         #serde_wrapper
+
+        //#input_vis type #facade_name = #wrapper_name<#raw_name>;
+        #input_vis type #facade_name = sealedstruct::Sealed<#inner_name>;
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
         pub struct #wrapper_name<T>(T);
@@ -240,7 +245,7 @@ fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident)
         Data::Union(_) => unimplemented!(),
     }
 }
-fn create_inner(data: &Data, inner_name: &Ident, vis: Visibility) -> TokenStream {
+fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
