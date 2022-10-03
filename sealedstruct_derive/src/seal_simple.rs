@@ -79,7 +79,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 Self(raw)
             }
 
-            fn into_inner(self) -> #raw_name {
+            pub fn into_inner(self) -> #raw_name {
                 self.0
             }
         }
