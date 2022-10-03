@@ -2,7 +2,7 @@ mod stdimpl;
 mod wrapper;
 
 use smallvec::SmallVec;
-use std::{collections::HashMap, fmt::Write, hash::Hash, num, sync::Arc};
+use std::{collections::HashMap, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoSealed, Seal, SealSimple, TryIntoSealed, Validator};
@@ -10,37 +10,6 @@ pub use wrapper::*;
 
 pub mod prelude {
     pub use crate::{Sealable, ValidationResultExtensions};
-}
-
-// Can only be created by the default-Implementation of `Sealable::se`
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
-pub struct Sealed<T>(pub T);
-
-#[cfg(feature = "serde")]
-impl<T: serde::Serialize> serde::Serialize for Sealed<T> {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.0.serialize(serializer)
-    }
-}
-
-impl<T> Sealed<T> {
-    pub fn new<TRaw: TryIntoSealed<Target = T>>(raw: TRaw) -> Result<Self> {
-        Ok(Sealed(raw.try_into_sealed()?))
-    }
-    pub fn into_inner(self) -> T {
-        self.0
-    }
-}
-
-impl<T> std::ops::Deref for Sealed<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
 }
 
 /// Usually, converting from Sealed to Raw is straight forward:

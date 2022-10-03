@@ -51,10 +51,19 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #serde_wrapper
 
-        #input_vis type #facade_name = sealedstruct::Sealed<#inner_name>;
+        #input_vis type #facade_name = #wrapper_name<#inner_name>;
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
         pub struct #wrapper_name<T>(T);
+
+        impl #facade_name {
+            pub fn new<TRaw: sealedstruct::TryIntoSealed<Target = #inner_name>>(raw: TRaw) -> sealedstruct::Result<Self> {
+                Ok(#wrapper_name(TRaw::try_into_sealed(raw)?))
+            }
+            pub fn into_inner(self) -> #inner_name {
+                self.0
+            }
+        }
 
         impl<T> std::ops::Deref for #wrapper_name<T> {
             type Target = T;
@@ -63,13 +72,13 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 &self.0
             }
         }
-        
+
         impl sealedstruct::Sealable for #raw_name
         {
             type Target = #facade_name;
         
             fn seal(self) -> sealedstruct::Result<Self::Target> {
-                sealedstruct::Sealed::new(self)
+                Self::Target::new(self)
             }
         
             fn open(sealed: Self::Target) -> Self {
@@ -99,8 +108,8 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 #cmp_body
             }
         }
-        impl std::cmp::PartialEq<sealedstruct::Sealed<#inner_name>> for #raw_name {
-            fn eq(&self, other: &sealedstruct::Sealed<#inner_name>) -> bool {
+        impl std::cmp::PartialEq<#facade_name> for #raw_name {
+            fn eq(&self, other: &#facade_name) -> bool {
                 let other: & #inner_name = other;
                 self == other
             }
