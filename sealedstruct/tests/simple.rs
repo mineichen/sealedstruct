@@ -13,7 +13,7 @@ fn sealed_numbers_simple() {
 fn sealed_numbers_tuple() {
     #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple, sealedstruct::Validator)]
     pub struct SimpleTupleRaw(i8);
-    sealedstruct::Result::<()>::from(SimpleTupleResult(Result::Ok(1))).unwrap();
+    sealedstruct::Result::<()>::from(SimpleTupleResult(Result::Ok(()))).unwrap();
     let raw = SimpleTupleRaw(0);
     let _sealed: SimpleTuple = raw.try_into().unwrap();
 }

@@ -208,10 +208,9 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
             Fields::Named(ref fields) => {
                 let recurse = fields.named.iter().map(|f| {
                     let name = &f.ident;
-                    let ty = &f.ty;
                     let vis = &f.vis;
                     quote_spanned! {f.span()=>
-                        #vis #name: sealedstruct::Result<<#ty as sealedstruct::Sealable>::Target>,
+                        #vis #name: sealedstruct::Result<()>,
                     }
                 });
                 quote! {
@@ -222,10 +221,9 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
             }
             Fields::Unnamed(ref fields) => {
                 let recurse = fields.unnamed.iter().map(|f| {
-                    let ty = &f.ty;
                     let vis = &f.vis;
                     quote_spanned! {f.span()=>
-                        #vis sealedstruct::Result<<#ty as sealedstruct::Sealable>::Target>
+                        #vis sealedstruct::Result<()>
                     }
                 });
                 quote! {
