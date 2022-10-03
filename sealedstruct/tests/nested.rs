@@ -4,6 +4,7 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
+    use sealedstruct::TryIntoSealed;
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -22,9 +23,20 @@ mod config {
         pub int64: i64,
         pub int128: i128,
     }
-    #[derive(PartialEq, Default, Debug, serde::Serialize, serde::Deserialize)]
+
+    #[derive(
+        PartialEq,
+        Default,
+        Debug,
+        sealedstruct::Seal,
+        sealedstruct::TryIntoSealed,
+        serde::Serialize,
+        serde::Deserialize,
+    )]
     #[serde(deny_unknown_fields)]
-    pub struct Other {}
+    pub struct OtherRaw {
+        pub test: i32,
+    }
 
     #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
     pub(super) struct WrapperRaw {
