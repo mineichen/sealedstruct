@@ -10,8 +10,11 @@ mod config {
     // Flaw. Visibility for Raw should be restricted to pub, pub (crate), or pub(super)
     // The hole procedure just makes sense if this is contained in a submodule.
     // All fields of the sealed struct would otherwise be accessible anyway
-    #[derive(PartialEq, Default, Debug, sealedstruct::Seal)]
+    #[derive(
+        PartialEq, Default, Debug, sealedstruct::Seal, serde::Serialize, serde::Deserialize,
+    )]
     #[sealedDerive(Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct NumbersRaw {
         pub int8: i8,
         pub int16: i16,
@@ -19,6 +22,9 @@ mod config {
         pub int64: i64,
         pub int128: i128,
     }
+    #[derive(PartialEq, Default, Debug, serde::Serialize, serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub struct Other {}
 
     #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
     pub(super) struct WrapperRaw {
