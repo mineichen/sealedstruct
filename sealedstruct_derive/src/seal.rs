@@ -51,7 +51,6 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #serde_wrapper
 
-        //#input_vis type #facade_name = #wrapper_name<#raw_name>;
         #input_vis type #facade_name = sealedstruct::Sealed<#inner_name>;
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
@@ -65,8 +64,25 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
         
+        impl sealedstruct::Sealable for #raw_name
+        {
+            type Target = #facade_name;
+        
+            fn seal(self) -> sealedstruct::Result<Self::Target> {
+                sealedstruct::Sealed::new(self)
+            }
+        
+            fn open(sealed: Self::Target) -> Self {
+                sealed.0.into()
+            }
+        
+            fn partial_eq(&self, other: &Self::Target) -> bool {
+                self.eq(&other.0)
+            }
+        }
+        
 
-        impl From<#inner_name> for #raw_name {
+         impl From<#inner_name> for #raw_name {
             fn from(input: #inner_name) -> Self {
                 #inner_into_raw
             }

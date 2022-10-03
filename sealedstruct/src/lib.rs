@@ -14,7 +14,7 @@ pub mod prelude {
 
 // Can only be created by the default-Implementation of `Sealable::se`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
-pub struct Sealed<T>(T);
+pub struct Sealed<T>(pub T);
 
 #[cfg(feature = "serde")]
 impl<T: serde::Serialize> serde::Serialize for Sealed<T> {
@@ -68,26 +68,6 @@ pub trait Validator {
 pub trait TryIntoSealed {
     type Target;
     fn try_into_sealed(self) -> Result<Self::Target>;
-}
-
-impl<T: TryIntoSealed> Sealable for T
-where
-    T::Target: Into<T>,
-    T: PartialEq<T::Target>,
-{
-    type Target = Sealed<T::Target>;
-
-    fn seal(self) -> Result<Self::Target> {
-        Sealed::new(self)
-    }
-
-    fn open(sealed: Self::Target) -> Self {
-        sealed.0.into()
-    }
-
-    fn partial_eq(&self, other: &Self::Target) -> bool {
-        self.eq(&other.0)
-    }
 }
 
 #[derive(Debug, PartialEq, Default, thiserror::Error)]
