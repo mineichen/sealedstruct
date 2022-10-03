@@ -51,8 +51,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #serde_wrapper
 
-        //#input_vis type #facade_name = #wrapper_name<#raw_name>;
-        #input_vis type #facade_name = sealedstruct::Sealed<#inner_name>;
+        #input_vis type #facade_name = #wrapper_name<#raw_name>;
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
         pub struct #wrapper_name<T>(T);
