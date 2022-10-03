@@ -13,7 +13,7 @@ mod validator;
 ///  - {Structname}Result: Helper which can be used inside TryIntoSealed to turn {StructName}Raw
 ///    into Result<{StructName}Sealed, ValidationErrors>. It is private to the file in which
 ///    it is generated on purpose.
-#[proc_macro_derive(Seal)]
+#[proc_macro_derive(Seal, attributes(sealedDerive))]
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     seal::derive_seal(input)
 }

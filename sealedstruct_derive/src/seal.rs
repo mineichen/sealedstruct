@@ -6,6 +6,17 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
+    
+    let inner_derive = if let Some(x) = input.attrs.iter().next() {
+        let tokens = &x.tokens;
+        quote!{
+            #[derive #tokens]
+        }
+    } else {
+        TokenStream::new()
+    };
+    
+
     if let syn::Visibility::Inherited = input.vis {
         panic!("Raw-Struct mustn't be private. Deriving 'Seal' only makes sense if generated Sealed* is in submodule");
     }
@@ -47,6 +58,8 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let expanded = quote! {
         #result
+        
+        #inner_derive
         #inner
 
         #serde_wrapper

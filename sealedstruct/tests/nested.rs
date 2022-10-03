@@ -11,6 +11,7 @@ mod config {
     // The hole procedure just makes sense if this is contained in a submodule.
     // All fields of the sealed struct would otherwise be accessible anyway
     #[derive(PartialEq, Default, Debug, sealedstruct::Seal)]
+    #[sealedDerive(Clone)]
     pub struct NumbersRaw {
         pub int8: i8,
         pub int16: i16,
@@ -95,6 +96,13 @@ pub(crate) struct RootRaw {
 
 #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
 pub(crate) struct ChildRaw {}
+
+#[test]
+fn numbners_is_clone() {
+    let value = NumbersRaw::default().seal().unwrap();
+    let clone = value.clone();
+    assert_eq!(value, clone);
+}
 
 #[test]
 fn sealed_numbers() {
