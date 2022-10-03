@@ -1,5 +1,5 @@
-use proc_macro2::{Ident, TokenStream, Span};
-use quote::{quote, quote_spanned, ToTokens};
+use proc_macro2::{Ident, TokenStream};
+use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
 
@@ -101,7 +101,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
         
-        impl From<#result_name> for sealedstruct::Result<#wrapper_name> {
+        impl From<#result_name> for sealedstruct::Result<()> {
             fn from(input: #result_name) -> Self {
                 #result_into_wrapper
             }
@@ -122,81 +122,63 @@ fn create_result_into_wrapper_body(
         Data::Struct(ref data) => {
             match data.fields {
                 Fields::Named(ref fields) => {
-                    let field_idents = fields
-                        .named
-                        .iter()
-                        .map(|f| f.ident.clone().into_token_stream());
                     let mut ident_iter = fields.named.iter().flat_map(|f| f.ident.clone());
-                    let field_list = match ident_iter.next() {
+                    match ident_iter.next() {
                         Some(first) => {
                             let first_string = first.to_string();
-                            let (fields, assign) = ident_iter.fold(
-                                (first.to_token_stream(), quote!{
+                            let assign = ident_iter.fold(
+                                quote!{
                                     sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#first, #first_string)
-                                }),
-                                |(fields_list, assign), next| {
+                                },
+                                |assign, next| {
                                     let next_text = next.to_string(); 
-                                    (
-                                        quote! {(#fields_list, #next)},
-                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text)) 
-                                        },
-                                    )
+                                    
+                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
+                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text)) 
+                                    }
                                 },
                             );
                             // Generates e.g.:
-                            // let ((foo, bar), baz) = input.foo.combine(input.bar).combine(input.baz)?;
+                            // input.foo.prependPath("foo").combine(input.bar.prependPath("bar")).combine(input.baz.prepend_path("baz"));
                             quote! {
-                                let #fields = #assign?;
+                                #assign.map(|_| ())
                             }
                         }
-                        _ => TokenStream::new(),
-                    };
-                    quote! {
-                        #field_list
-                        Ok(#wrapper_name(#raw_name { #(#field_idents,)* }))
+                        _ => quote! { Ok(())}
                     }
                 }
                 Fields::Unnamed(ref fields) => {
-                    let field_idents =(0..fields.unnamed.len())
-                        .map(|f| Ident::new(&format!("x{f}"), Span::call_site()));
                     let mut ident_iter = (0..fields.unnamed.len()).map(|f|{
-                        let index = Index::from(f); (
-                        quote! { input.#index },
-                        Ident::new(&format!("x{f}"), Span::call_site()),
-                        f.to_string()
-                    )});
-                    let field_list = match ident_iter.next() {
-                        Some((first_acc, first_var, first_label)) => {
-                            let (fields, assign) = ident_iter.fold(
-                                (first_var.to_token_stream(), quote!{
+                        let index = Index::from(f); 
+                        (
+                            quote! { input.#index },
+                            f.to_string()
+                        )
+                    });
+                    match ident_iter.next() {
+                        Some((first_acc, first_label)) => {
+                            let assign = ident_iter.fold(
+                                quote!{
                                     sealedstruct::prelude::ValidationResultExtensions::prepend_path(#first_acc, #first_label)
-                                }),
-                                |(fields_list, assign), (next_acc, next_var, next_label)| {
-                                    (
-                                        quote! {(#fields_list, #next_var)},
-                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label)) 
-                                        },
-                                    )
+                                },
+                                |assign, (next_acc, next_label)| {
+                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
+                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label)) 
+                                    }
                                 },
                             );
                             // Generates e.g.:
-                            // let ((foo, bar), baz) = input.foo.combine(input.bar).combine(input.baz)?;
+                            // input.0.prependPath("0").combine(input.1.prependPath("1")).combine(input.2.prepend_path("2"));
                             quote! {
-                                let #fields = #assign?;
+                                #assign.map(|_| ())
                             }
                         }
                         _ => TokenStream::new(),
-                    };
-                    quote! {
-                        #field_list
-                        Ok(#wrapper_name(#raw_name(#(#field_idents,)* ))) 
                     }
                 }
                 Fields::Unit => {
                     // Unit structs cannot own more than 0 bytes of heap memory.
-                    TokenStream::new()
+                    quote! { Ok(())}
                 }
             }
         }
