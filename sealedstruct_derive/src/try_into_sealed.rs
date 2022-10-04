@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 
 pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -53,8 +53,16 @@ fn create_fields(data: &Data, result_name: &Ident) -> TokenStream {
                         }.into()
                     }
                 }
-                Fields::Unnamed(ref _fields) => {
-                    unimplemented!("Tuple-Structs are not supported yet");
+                Fields::Unnamed(ref fields) => {
+                    let recurse = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                        let index = Index::from(i);
+                        quote_spanned! {f.span()=>
+                            sealedstruct::Sealable::seal(self.#index),
+                        }
+                    });
+                    quote! {
+                        #result_name(#(#recurse)*).into()
+                    }
                 }
                 Fields::Unit => {
                     // Unit structs cannot own more than 0 bytes of heap memory.

@@ -1,7 +1,7 @@
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, TokenStream, Span};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility, Index};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -147,9 +147,10 @@ fn create_cmp_raw_with_inner_body(
                 let ident = &f.ident;
                 quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
             }),
-            Fields::Unnamed(ref _fields) => {
-                unimplemented!("Tuple-Structs are not supported yet");
-            }
+            Fields::Unnamed(ref fields) => (0..fields.unnamed.len()).fold(quote! { true }, |acc, f| {
+                let ident = Index::from(f);
+                quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
+            }),
             Fields::Unit => TokenStream::new(),
         },
         Data::Enum(ref e) => {
@@ -219,8 +220,42 @@ fn create_result_into_inner_body(
                         Ok(#inner_name { #(#field_idents,)* })
                     }
                 }
-                Fields::Unnamed(ref _fields) => {
-                    unimplemented!("Tuple-Structs are not supported yet");
+                Fields::Unnamed(ref fields) => {
+                    let field_idents =(0..fields.unnamed.len())
+                        .map(|f| Ident::new(&format!("x{f}"), Span::call_site()));
+                    let mut ident_iter = (0..fields.unnamed.len()).map(|f|{
+                        let index = Index::from(f); (
+                        quote! { input.#index },
+                        Ident::new(&format!("x{f}"), Span::call_site()),
+                        f.to_string()
+                    )});
+                    let field_list = match ident_iter.next() {
+                        Some((first_acc, first_var, first_label)) => {
+                            let (fields, assign) = ident_iter.fold(
+                                (first_var.to_token_stream(), quote!{
+                                    sealedstruct::prelude::ValidationResultExtensions::prepend_path(#first_acc, #first_label)
+                                }),
+                                |(fields_list, assign), (next_acc, next_var, next_label)| {
+                                    (
+                                        quote! {(#fields_list, #next_var)},
+                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
+                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label)) 
+                                        },
+                                    )
+                                },
+                            );
+                            // Generates e.g.:
+                            // let ((foo, bar), baz) = input.foo.combine(input.bar).combine(input.baz)?;
+                            quote! {
+                                let #fields = #assign?;
+                            }
+                        }
+                        _ => TokenStream::new(),
+                    };
+                    quote! {
+                        #field_list
+                        Ok(#inner_name(#(#field_idents,)* )) 
+                    }
                 }
                 Fields::Unit => {
                     // Unit structs cannot own more than 0 bytes of heap memory.
@@ -260,8 +295,15 @@ fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident)
                     #raw_name { #(#field_mappings)* }
                 }
             }
-            Fields::Unnamed(ref _fields) => {
-                unimplemented!("Tuple-Structs are not supported yet");
+            Fields::Unnamed(ref fields) => {
+                let field_mappings = (0..fields.unnamed.len()).map(|f| {
+                    let ident = Index::from(f);
+                    quote! { #ident: sealedstruct::Sealable::open(input.#ident),}
+                });
+
+                quote! {
+                    #raw_name { #(#field_mappings)* }
+                }
             }
             Fields::Unit => {
                 unimplemented!("Unit-Structs are not supported yet");
@@ -305,8 +347,18 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStrea
                     }
                 }
             }
-            Fields::Unnamed(ref _fields) => {
-                unimplemented!("Tuple-Structs are not supported yet");
+            Fields::Unnamed(ref fields) => {
+                let recurse = fields.unnamed.iter().map(|f| {
+                    let ty = &f.ty;
+                    let vis = &f.vis;
+                    quote_spanned! {f.span()=>
+                        #vis <#ty as sealedstruct::Sealable>::Target,
+                    }
+                });
+                quote! {
+                    #[derive(PartialEq, Debug)]
+                    #vis struct #inner_name(#(#recurse)*);
+                }
             }
             Fields::Unit => unimplemented!(),
         },
@@ -352,7 +404,18 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                     }
                 }
             }
-            Fields::Unnamed(ref _fields) => unimplemented!("Tuple-Structs are not supported yet"),
+            Fields::Unnamed(ref fields) => {
+                let recurse = fields.unnamed.iter().map(|f| {
+                    let ty = &f.ty;
+                    let vis = &f.vis;
+                    quote_spanned! {f.span()=>
+                        #vis sealedstruct::Result<<#ty as sealedstruct::Sealable>::Target>,
+                    }
+                });
+                quote! {
+                    struct #result_name(#(#recurse)*);
+                }
+            },
 
             Fields::Unit => unimplemented!("Unit-Struct not supported"),
         },

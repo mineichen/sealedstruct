@@ -4,7 +4,6 @@ use config::*;
 use sealedstruct::prelude::*;
 
 mod config {
-    use sealedstruct::TryIntoSealed;
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -106,6 +105,15 @@ mod config {
         }
     }
 }
+
+#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+pub struct TupleStructRaw();
+
+#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+pub struct TupleStructSingleRaw(i32);
+
+#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+pub struct TupleStructDoubleRaw(i32, i32);
 
 #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
 pub(crate) struct RootRaw {
