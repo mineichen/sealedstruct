@@ -19,4 +19,4 @@ serde = ["dep:serde", "sealedstruct_derive/serde"]
 [[test]]
 name = "nested"
 path = "tests/nested.rs"
-required-features = ["uuid"]
+required-features = ["uuid", "serde"]
