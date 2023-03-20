@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream, Span};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility, Index};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility, Index, Generics, GenericParam, parse_quote, TypeParamBound};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -31,15 +31,18 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("Struct name must end with 'Raw'");
     }
 
+    let sealable_generics = add_trait_bounds(input.generics.clone(), &[parse_quote!(sealedstruct::Sealable)]);
+    let (impl_generics, ty_generics, where_clause) = sealable_generics.split_for_impl();
+  
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
-    let facade_name = syn::Ident::new(&format!("{struct_name_str}"), raw_name.span());
+    let facade_name = syn::Ident::new(struct_name_str, raw_name.span());
     let wrapper_name = syn::Ident::new(&format!("{struct_name_str}Wrapper"), raw_name.span());
     let inner_name = syn::Ident::new(&format!("{struct_name_str}Inner"), raw_name.span());
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
-    let inner = create_inner(&input.data, &inner_name, &input.vis);
-    let result = create_result_fields(&input.data, &result_name);
+    let inner = create_inner(&input.data, quote! { #inner_name #impl_generics #where_clause}, &input.vis);
+    let result = create_result(&input.data, quote! { #result_name #impl_generics #where_clause});
     let result_into_inner = create_result_into_inner_body(&input.data, &inner_name, &result_name);
     let inner_into_raw = create_inner_into_raw_body(&input.data, &inner_name, &raw_name);
     let cmp_body = create_cmp_raw_with_inner_body(&input.data, &raw_name, &inner_name);
@@ -67,16 +70,16 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #serde_wrapper
 
-        #input_vis type #facade_name = #wrapper_name<#inner_name>;
+        #input_vis type #facade_name #ty_generics  = #wrapper_name<#inner_name #ty_generics>;
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default)]
         pub struct #wrapper_name<T>(T);
 
-        impl #facade_name {
-            pub fn new<TRaw: sealedstruct::TryIntoSealed<Target = #inner_name>>(raw: TRaw) -> sealedstruct::Result<Self> {
+        impl #impl_generics #facade_name #ty_generics #where_clause {
+            pub fn new<TRaw: sealedstruct::TryIntoSealed<Target = #inner_name #ty_generics>>(raw: TRaw) -> sealedstruct::Result<Self> {
                 Ok(#wrapper_name(TRaw::try_into_sealed(raw)?))
             }
-            pub fn into_inner(self) -> #inner_name {
+            pub fn into_inner(self) -> #inner_name #ty_generics {
                 self.0
             }
         }
@@ -89,9 +92,9 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
-        impl sealedstruct::Sealable for #raw_name
+        impl #impl_generics sealedstruct::Sealable for #raw_name #ty_generics #where_clause
         {
-            type Target = #facade_name;
+            type Target = #facade_name #ty_generics;
         
             fn seal(self) -> sealedstruct::Result<Self::Target> {
                 Self::Target::new(self)
@@ -107,27 +110,26 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
         
 
-         impl From<#inner_name> for #raw_name {
-            fn from(input: #inner_name) -> Self {
+         impl #impl_generics From<#inner_name #ty_generics> for #raw_name #ty_generics {
+            fn from(input: #inner_name #ty_generics) -> Self {
                 #inner_into_raw
             }
         }
 
-        impl From<#result_name> for sealedstruct::Result<#inner_name> {
-            fn from(input: #result_name) -> Self {
+        impl #impl_generics From<#result_name #ty_generics> for sealedstruct::Result<#inner_name #ty_generics> {
+            fn from(input: #result_name #ty_generics) -> Self {
                 #result_into_inner
             }
         }
 
-        impl std::cmp::PartialEq<#inner_name> for #raw_name {
-            fn eq(&self, other: & #inner_name ) -> bool {
+        impl #impl_generics std::cmp::PartialEq<#inner_name #ty_generics> for #raw_name #ty_generics {
+            fn eq(&self, other: & #inner_name #ty_generics ) -> bool {
                 #cmp_body
             }
         }
-        impl std::cmp::PartialEq<#facade_name> for #raw_name {
-            fn eq(&self, other: &#facade_name) -> bool {
-                let other: & #inner_name = other;
-                self == other
+        impl #impl_generics std::cmp::PartialEq<#facade_name #ty_generics> for #raw_name #ty_generics  {
+            fn eq(&self, other: &#facade_name #ty_generics) -> bool {
+                self == std::ops::Deref::deref(other)
             }
         }
     };
@@ -328,7 +330,7 @@ fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident)
         Data::Union(_) => unimplemented!(),
     }
 }
-fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStream {
+fn create_inner(data: &Data, inner_type: TokenStream, vis: &Visibility) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
@@ -342,7 +344,7 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStrea
                 });
                 quote! {
                     #[derive(PartialEq, Debug)]
-                    #vis struct #inner_name {
+                    #vis struct #inner_type {
                         #(#recurse)*
                     }
                 }
@@ -357,7 +359,7 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStrea
                 });
                 quote! {
                     #[derive(PartialEq, Debug)]
-                    #vis struct #inner_name(#(#recurse)*);
+                    #vis struct #inner_type(#(#recurse)*);
                 }
             }
             Fields::Unit => unimplemented!(),
@@ -377,7 +379,7 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStrea
             });
             quote! {
                 #[derive(PartialEq, Debug)]
-                #vis enum #inner_name {
+                #vis enum #inner_type {
                     #(#recurse)*
                 }
             }
@@ -386,7 +388,7 @@ fn create_inner(data: &Data, inner_name: &Ident, vis: &Visibility) -> TokenStrea
     }
 }
 
-fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
+fn create_result(data: &Data, result_type: TokenStream) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
@@ -399,7 +401,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                     }
                 });
                 quote! {
-                    struct #result_name {
+                    struct #result_type {
                         #(#recurse)*
                     }
                 }
@@ -413,7 +415,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                     }
                 });
                 quote! {
-                    struct #result_name(#(#recurse)*);
+                    struct #result_type(#(#recurse)*);
                 }
             },
 
@@ -429,11 +431,20 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                 }
             });
             quote! {
-                enum #result_name {
+                enum #result_type {
                     #(#recurse)*
                 }
             }
         }
         Data::Union(_) => unimplemented!("Unions are not supported"),
+    }    
+}
+
+fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]) -> Generics {
+    for param in &mut generics.params {
+        if let GenericParam::Type(ref mut type_param) = *param {
+            type_param.bounds.extend(bounds.iter().cloned());
+        }
     }
+    generics
 }
