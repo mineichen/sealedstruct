@@ -30,29 +30,27 @@ fn compare_hashmap() {
 
 #[test]
 fn compare_vec() {
-    let vec = vec![FooRaw { x: 42 }];
+    let mut vec = vec![FooRaw { x: 42 }];
     let sealed_vec = vec.clone().seal().unwrap();
     assert!(vec.partial_eq(&sealed_vec));
 
-    let mut clone_vec = vec.clone();
-    clone_vec.push(FooRaw { x: 42 });
-    assert!(!clone_vec.partial_eq(&sealed_vec));
-    clone_vec.clear();
-    assert!(!clone_vec.partial_eq(&sealed_vec));
-    clone_vec.push(FooRaw { x: 10 });
+    vec.push(FooRaw { x: 42 });
+    assert!(!vec.partial_eq(&sealed_vec));
+    vec.clear();
+    assert!(!vec.partial_eq(&sealed_vec));
+    vec.push(FooRaw { x: 10 });
 }
 
 #[test]
 fn compare_hashset() {
-    let hashset = [42].into_iter().collect::<HashSet<i32>>();
+    let mut hashset = [42].into_iter().collect::<HashSet<i32>>();
     let sealed_hashset = hashset.clone().seal().unwrap();
     assert!(hashset.partial_eq(&sealed_hashset));
 
-    let mut clone_set = hashset.clone();
-    assert!(clone_set.remove(&42));
-    assert!(!clone_set.partial_eq(&sealed_hashset));
-    clone_set.insert(2);
-    assert!(!clone_set.partial_eq(&sealed_hashset));
+    assert!(hashset.remove(&42));
+    assert!(!hashset.partial_eq(&sealed_hashset));
+    hashset.insert(2);
+    assert!(!hashset.partial_eq(&sealed_hashset));
 }
 
 #[test]
