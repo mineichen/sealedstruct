@@ -89,7 +89,7 @@ where
             return false;
         }
         for value in self.iter() {
-            if other.get(value) == None {
+            if !other.contains(value) {
                 return false;
             }
         }

@@ -1,24 +1,26 @@
-use proc_macro2::{Ident, TokenStream, Span};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility, Index, Generics, GenericParam, parse_quote, TypeParamBound};
+use syn::{
+    parse_macro_input, parse_quote, Data, DeriveInput, Fields, Generics, Index, TypeParamBound,
+    Visibility, WhereClause,
+};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
-    let mut attrs = input.attrs.iter().filter(|x| match x.path.get_ident(){
+    let mut attrs = input.attrs.iter().filter(|x| match x.path.get_ident() {
         Some(ident) => ident == "sealedDerive",
-        None => false
+        None => false,
     });
     let inner_derive = if let Some(x) = attrs.next() {
         let tokens = &x.tokens;
-        quote!{
+        quote! {
             #[derive #tokens]
         }
     } else {
         TokenStream::new()
     };
-    
 
     if let syn::Visibility::Inherited = input.vis {
         panic!("Raw-Struct mustn't be private. Deriving 'Seal' only makes sense if generated Sealed* is in submodule");
@@ -31,9 +33,13 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("Struct name must end with 'Raw'");
     }
 
-    let sealable_generics = add_trait_bounds(input.generics.clone(), &[parse_quote!(sealedstruct::Sealable)]);
+    let sealable_generics = add_trait_bounds(
+        input.generics.clone(),
+        &[parse_quote!(sealedstruct::Sealable)],
+    );
+    let create_inner_generics = sealable_generics.clone();
     let (impl_generics, ty_generics, where_clause) = sealable_generics.split_for_impl();
-  
+
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
     let facade_name = syn::Ident::new(struct_name_str, raw_name.span());
     let wrapper_name = syn::Ident::new(&format!("{struct_name_str}Wrapper"), raw_name.span());
@@ -41,13 +47,16 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let result_name = syn::Ident::new(&format!("{struct_name_str}Result"), raw_name.span());
 
     // Generate an expression to sum up the heap size of each field.
-    let inner = create_inner(&input.data, quote! { #inner_name #impl_generics #where_clause}, &input.vis);
-    let result = create_result(&input.data, quote! { #result_name #impl_generics #where_clause});
+    let inner = create_inner(&input.data, &inner_name, create_inner_generics, &input.vis);
+    let result = create_result(
+        &input.data,
+        quote! { #result_name #impl_generics #where_clause},
+    );
     let result_into_inner = create_result_into_inner_body(&input.data, &inner_name, &result_name);
     let inner_into_raw = create_inner_into_raw_body(&input.data, &inner_name, &raw_name);
     let cmp_body = create_cmp_raw_with_inner_body(&input.data, &raw_name, &inner_name);
     let input_vis = input.vis;
-    
+
     #[cfg(feature = "serde")]
     let serde_wrapper = quote! {
         impl<T: serde::Serialize> serde::Serialize for #wrapper_name<T> {
@@ -57,14 +66,14 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             {
                 self.0.serialize(serializer)
             }
-        }        
+        }
     };
     #[cfg(not(feature = "serde"))]
     let serde_wrapper = quote! {};
 
     let expanded = quote! {
         #result
-        
+
         #inner_derive
         #inner
 
@@ -86,7 +95,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         impl<T> std::ops::Deref for #wrapper_name<T> {
             type Target = T;
-        
+
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
@@ -95,20 +104,20 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         impl #impl_generics sealedstruct::Sealable for #raw_name #ty_generics #where_clause
         {
             type Target = #facade_name #ty_generics;
-        
+
             fn seal(self) -> sealedstruct::Result<Self::Target> {
                 Self::Target::new(self)
             }
-        
+
             fn open(sealed: Self::Target) -> Self {
                 sealed.0.into()
             }
-        
+
             fn partial_eq(&self, other: &Self::Target) -> bool {
                 self.eq(&other.0)
             }
         }
-        
+
 
          impl #impl_generics From<#inner_name #ty_generics> for #raw_name #ty_generics {
             fn from(input: #inner_name #ty_generics) -> Self {
@@ -149,10 +158,12 @@ fn create_cmp_raw_with_inner_body(
                 let ident = &f.ident;
                 quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
             }),
-            Fields::Unnamed(ref fields) => (0..fields.unnamed.len()).fold(quote! { true }, |acc, f| {
-                let ident = Index::from(f);
-                quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
-            }),
+            Fields::Unnamed(ref fields) => {
+                (0..fields.unnamed.len()).fold(quote! { true }, |acc, f| {
+                    let ident = Index::from(f);
+                    quote!( #acc && sealedstruct::Sealable::partial_eq(&self.#ident, &other.#ident))
+                })
+            }
             Fields::Unit => TokenStream::new(),
         },
         Data::Enum(ref e) => {
@@ -200,11 +211,11 @@ fn create_result_into_inner_body(
                                     sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#first, #first_string)
                                 }),
                                 |(fields_list, assign), next| {
-                                    let next_text = next.to_string(); 
+                                    let next_text = next.to_string();
                                     (
                                         quote! {(#fields_list, #next)},
-                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text)) 
+                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign,
+                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text))
                                         },
                                     )
                                 },
@@ -223,14 +234,16 @@ fn create_result_into_inner_body(
                     }
                 }
                 Fields::Unnamed(ref fields) => {
-                    let field_idents =(0..fields.unnamed.len())
+                    let field_idents = (0..fields.unnamed.len())
                         .map(|f| Ident::new(&format!("x{f}"), Span::call_site()));
-                    let mut ident_iter = (0..fields.unnamed.len()).map(|f|{
-                        let index = Index::from(f); (
-                        quote! { input.#index },
-                        Ident::new(&format!("x{f}"), Span::call_site()),
-                        f.to_string()
-                    )});
+                    let mut ident_iter = (0..fields.unnamed.len()).map(|f| {
+                        let index = Index::from(f);
+                        (
+                            quote! { input.#index },
+                            Ident::new(&format!("x{f}"), Span::call_site()),
+                            f.to_string(),
+                        )
+                    });
                     let field_list = match ident_iter.next() {
                         Some((first_acc, first_var, first_label)) => {
                             let (fields, assign) = ident_iter.fold(
@@ -240,8 +253,8 @@ fn create_result_into_inner_body(
                                 |(fields_list, assign), (next_acc, next_var, next_label)| {
                                     (
                                         quote! {(#fields_list, #next_var)},
-                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label)) 
+                                        quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign,
+                                            sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label))
                                         },
                                     )
                                 },
@@ -256,7 +269,7 @@ fn create_result_into_inner_body(
                     };
                     quote! {
                         #field_list
-                        Ok(#inner_name(#(#field_idents,)* )) 
+                        Ok(#inner_name(#(#field_idents,)* ))
                     }
                 }
                 Fields::Unit => {
@@ -330,11 +343,18 @@ fn create_inner_into_raw_body(data: &Data, inner_name: &Ident, raw_name: &Ident)
         Data::Union(_) => unimplemented!(),
     }
 }
-fn create_inner(data: &Data, inner_type: TokenStream, vis: &Visibility) -> TokenStream {
+fn create_inner(
+    data: &Data,
+    inner_name: &Ident,
+    generics: Generics,
+    vis: &Visibility,
+) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    let inner_type = quote! { #inner_name #impl_generics #where_clause };
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
-                let recurse = fields.named.iter().map(|f| {
+                let struct_fields = fields.named.iter().map(|f| {
                     let name = &f.ident;
                     let ty = &f.ty;
                     let vis = &f.vis;
@@ -342,10 +362,52 @@ fn create_inner(data: &Data, inner_type: TokenStream, vis: &Visibility) -> Token
                         #vis #name: <#ty as sealedstruct::Sealable>::Target,
                     }
                 });
-                quote! {
-                    #[derive(PartialEq, Debug)]
-                    #vis struct #inner_type {
-                        #(#recurse)*
+
+                let cmp_where_clause =
+                    build_target_where_clause(generics.clone(), parse_quote!(std::cmp::PartialEq));
+                let cmp_fields = fields.named.iter().map(|f| {
+                    let ident = &f.ident;
+                    quote_spanned! {f.span()=>
+                        && self. #ident == other. #ident
+                    }
+                });
+
+                let dbg_where_clause =
+                    build_target_where_clause(generics.clone(), parse_quote!(std::fmt::Debug));
+                let dbg_fields = fields.named.iter().map(|f| {
+                    let name_str = f.ident.as_ref().expect("Always has a ident").to_string();
+                    let name = &f.ident;
+                    quote_spanned! {f.span()=>
+                        .field(#name_str, &self. #name)
+                    }
+                });
+
+                let inner_name_str = inner_name.to_string();
+                if !generics.params.is_empty() {
+                    quote! {
+                        // See if StructNameInner could be changed to have no generic with corresponding StructNameRaw
+                        // This would allow Auto-Derive of PartialEq and Debug
+                        impl #impl_generics std::cmp::PartialEq for #inner_name #ty_generics #cmp_where_clause {
+                            fn eq(&self, other: &Self) -> bool {
+                                true #(#cmp_fields)*
+                            }
+                        }
+
+                        impl #impl_generics std::fmt::Debug for #inner_name #ty_generics #dbg_where_clause  {
+                            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                f.debug_struct(#inner_name_str) #(#dbg_fields)* .finish()
+                            }
+                        }
+                        #vis struct #inner_type {
+                            #(#struct_fields)*
+                        }
+                    }
+                } else {
+                    quote! {
+                        #[derive(PartialEq, Debug)]
+                        #vis struct #inner_type {
+                            #(#struct_fields)*
+                        }
                     }
                 }
             }
@@ -417,7 +479,7 @@ fn create_result(data: &Data, result_type: TokenStream) -> TokenStream {
                 quote! {
                     struct #result_type(#(#recurse)*);
                 }
-            },
+            }
 
             Fields::Unit => unimplemented!("Unit-Struct not supported"),
         },
@@ -437,14 +499,23 @@ fn create_result(data: &Data, result_type: TokenStream) -> TokenStream {
             }
         }
         Data::Union(_) => unimplemented!("Unions are not supported"),
-    }    
+    }
 }
 
 fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]) -> Generics {
-    for param in &mut generics.params {
-        if let GenericParam::Type(ref mut type_param) = *param {
-            type_param.bounds.extend(bounds.iter().cloned());
-        }
+    for type_param in &mut generics.type_params_mut() {
+        type_param.bounds.extend(bounds.iter().cloned());
     }
     generics
+}
+
+fn build_target_where_clause(mut generics: Generics, bound: TypeParamBound) -> WhereClause {
+    let mut where_clause = generics.make_where_clause().clone();
+    for type_param in &mut generics.type_params() {
+        let ident = &type_param.ident;
+        where_clause
+            .predicates
+            .push(parse_quote! {<#ident as sealedstruct::Sealable>::Target:  #bound})
+    }
+    where_clause
 }

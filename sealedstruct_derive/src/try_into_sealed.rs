@@ -14,6 +14,7 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
         panic!("Struct name must end with 'Raw'");
     }
 
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let struct_name_str = &raw_struct_name_str[..(raw_struct_name_str.len() - 3)];
     let struct_name = syn::Ident::new(struct_name_str, raw_struct_name.span());
     let inner_name = syn::Ident::new(&format!("{struct_name}Inner"), raw_struct_name.span());
@@ -23,8 +24,8 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
     let result = create_fields(&input.data, &result_name);
 
     let expanded = quote! {
-        impl sealedstruct::TryIntoSealed for #raw_struct_name {
-            type Target = #inner_name;
+        impl #impl_generics sealedstruct::TryIntoSealed for #raw_struct_name #ty_generics #where_clause {
+            type Target = #inner_name #ty_generics;
 
             fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
                 #result

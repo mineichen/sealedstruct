@@ -25,8 +25,9 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     // Generate an expression to sum up the heap size of each field.
     let result = create_result_fields(&input.data, &result_name);
-    let result_into_wrapper = create_result_into_wrapper_body(&input.data, &wrapper_name, &raw_name, &result_name);
-    
+    let result_into_wrapper =
+        create_result_into_wrapper_body(&input.data, &wrapper_name, &raw_name, &result_name);
+
     #[cfg(feature = "serde")]
     let serde_wrapper = quote! {
         impl<T: serde::Serialize> serde::Serialize for #wrapper_name<T> {
@@ -36,7 +37,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             {
                 self.0.serialize(serializer)
             }
-        }  
+        }
         impl<'de, T: serde::Deserialize<'de> + sealedstruct::Validator> serde::Deserialize<'de> for #wrapper_name<T> {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
@@ -47,21 +48,21 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     Ok(#wrapper_name(e))
                 })
             }
-        }    
+        }
     };
     #[cfg(not(feature = "serde"))]
     let serde_wrapper = quote! {};
 
     let expanded = quote! {
         #result
-        
+
         #serde_wrapper
-        
+
         #input_vis type #facade_name = #wrapper_name<#raw_name>;
 
         impl<T: sealedstruct::Validator + From<#raw_name>> TryFrom<#raw_name> for #wrapper_name<T> {
             type Error = sealedstruct::ValidationErrors;
-        
+
             fn try_from(value: #raw_name) -> Result<Self, Self::Error> {
                 sealedstruct::Validator::check(&value)?;
                 Ok(#wrapper_name(value.into()))
@@ -95,12 +96,12 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         impl<T> std::ops::Deref for #wrapper_name<T> {
             type Target = T;
-        
+
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
         }
-        
+
         impl From<#result_name> for sealedstruct::Result<()> {
             fn from(input: #result_name) -> Self {
                 #result_into_wrapper
@@ -131,10 +132,10 @@ fn create_result_into_wrapper_body(
                                     sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#first, #first_string)
                                 },
                                 |assign, next| {
-                                    let next_text = next.to_string(); 
-                                    
-                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text)) 
+                                    let next_text = next.to_string();
+
+                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign,
+                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(input.#next, #next_text))
                                     }
                                 },
                             );
@@ -144,16 +145,13 @@ fn create_result_into_wrapper_body(
                                 #assign.map(|_| ())
                             }
                         }
-                        _ => quote! { Ok(())}
+                        _ => quote! { Ok(())},
                     }
                 }
                 Fields::Unnamed(ref fields) => {
-                    let mut ident_iter = (0..fields.unnamed.len()).map(|f|{
-                        let index = Index::from(f); 
-                        (
-                            quote! { input.#index },
-                            f.to_string()
-                        )
+                    let mut ident_iter = (0..fields.unnamed.len()).map(|f| {
+                        let index = Index::from(f);
+                        (quote! { input.#index }, f.to_string())
                     });
                     match ident_iter.next() {
                         Some((first_acc, first_label)) => {
@@ -162,8 +160,8 @@ fn create_result_into_wrapper_body(
                                     sealedstruct::prelude::ValidationResultExtensions::prepend_path(#first_acc, #first_label)
                                 },
                                 |assign, (next_acc, next_label)| {
-                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign, 
-                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label)) 
+                                    quote! { sealedstruct::prelude::ValidationResultExtensions::combine(#assign,
+                                        sealedstruct::prelude::ValidationResultExtensions::prepend_path(#next_acc, #next_label))
                                     }
                                 },
                             );
@@ -229,7 +227,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                 quote! {
                     struct #result_name(#(#recurse,)*);
                 }
-            },
+            }
 
             Fields::Unit => unimplemented!("Unit-Struct not supported"),
         },
