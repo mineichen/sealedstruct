@@ -11,6 +11,7 @@ The API is very experimental and can currently break at any time. This is why th
 
 
 ## With intermediate Representation
+```rust
 #[derive(sealedstruct::Seal)]
 struct FooRaw {
     x: i32
@@ -32,3 +33,4 @@ impl sealedstruct::Validator for InvertibleTransform3dRaw {
         todo!("Your validation logic goes here");
     }
 }
+```
