@@ -1,3 +1,5 @@
+// Todo: Don't implement SimpleDerive if there is nothing to validate
+
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 

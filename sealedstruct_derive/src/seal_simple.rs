@@ -1,7 +1,10 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
+use syn::{
+    parse_macro_input, parse_quote, Data, DeriveInput, Fields, Generics, Index, TypeParamBound,
+    WhereClause,
+};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -17,6 +20,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("Struct name must end with 'Raw'");
     }
 
+    let (impl_generics, ty_generics, _) = input.generics.split_for_impl();
     let struct_name_str = &raw_name_str[..(raw_name_str.len() - 3)];
     let facade_name = syn::Ident::new(struct_name_str, raw_name.span());
     let wrapper_name = syn::Ident::new(&format!("{struct_name_str}Wrapper"), raw_name.span());
@@ -24,29 +28,31 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input_vis = input.vis;
 
     // Generate an expression to sum up the heap size of each field.
-    let result = create_result_fields(&input.data, &result_name);
+    let result = create_result(&input.data, quote! { #result_name });
     let result_into_wrapper =
         create_result_into_wrapper_body(&input.data, &wrapper_name, &raw_name, &result_name);
 
     #[cfg(feature = "serde")]
-    let serde_wrapper = quote! {
-        impl<T: serde::Serialize> serde::Serialize for #wrapper_name<T> {
-            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                self.0.serialize(serializer)
+    let serde_wrapper = {
+        quote! {
+            impl<T: serde::Serialize> serde::Serialize for #wrapper_name<T>  {
+                fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+                where
+                    S: serde::Serializer,
+                {
+                    self.0.serialize(serializer)
+                }
             }
-        }
-        impl<'de, T: serde::Deserialize<'de> + sealedstruct::Validator> serde::Deserialize<'de> for #wrapper_name<T> {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                T::deserialize(deserializer).and_then(|e| {
-                    e.check().map_err(<D::Error as serde::de::Error>::custom)?;
-                    Ok(#wrapper_name(e))
-                })
+            impl<'de, T: serde::Deserialize<'de> + sealedstruct::Validator> serde::Deserialize<'de> for #wrapper_name<T> {
+                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                where
+                    D: serde::Deserializer<'de>,
+                {
+                    T::deserialize(deserializer).and_then(|e| {
+                        e.check().map_err(<D::Error as serde::de::Error>::custom)?;
+                        Ok(#wrapper_name(e))
+                    })
+                }
             }
         }
     };
@@ -58,41 +64,40 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #serde_wrapper
 
-        #input_vis type #facade_name = #wrapper_name<#raw_name>;
-
-        impl<T: sealedstruct::Validator + From<#raw_name>> TryFrom<#raw_name> for #wrapper_name<T> {
+        #input_vis type #facade_name #ty_generics = #wrapper_name<#raw_name #ty_generics>;
+        impl #impl_generics TryFrom<#raw_name  #ty_generics> for #facade_name  #ty_generics {
             type Error = sealedstruct::ValidationErrors;
 
-            fn try_from(value: #raw_name) -> Result<Self, Self::Error> {
+            fn try_from(value: #raw_name  #ty_generics) -> Result<Self, Self::Error> {
                 sealedstruct::Validator::check(&value)?;
-                Ok(#wrapper_name(value.into()))
+                Ok(#wrapper_name(value))
             }
         }
 
-        impl #raw_name {
-            pub fn seal(self) -> sealedstruct::Result<#wrapper_name> {
+        impl #impl_generics  #raw_name #ty_generics {
+            pub fn seal(self) -> sealedstruct::Result<#facade_name #ty_generics> {
                 self.try_into()
             }
         }
 
-        impl #wrapper_name {
-            fn new_unchecked(raw: #raw_name) -> Self {
+        impl #impl_generics #wrapper_name<#raw_name #ty_generics> {
+            fn new_unchecked(raw: #raw_name #ty_generics) -> Self {
                 Self(raw)
             }
 
-            pub fn into_inner(self) -> #raw_name {
+            pub fn into_inner(self) -> #raw_name #ty_generics {
                 self.0
             }
         }
 
         impl<T: std::fmt::Display> std::fmt::Display for #wrapper_name<T> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.0.fmt(f)
+                std::fmt::Display::fmt(&self.0, f)
             }
         }
 
         #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default, sealedstruct::IntoSealed, Ord, PartialOrd)]
-        pub struct #wrapper_name<T=#raw_name>(T);
+        pub struct #wrapper_name<T>(T);
 
         impl<T> std::ops::Deref for #wrapper_name<T> {
             type Target = T;
@@ -200,7 +205,7 @@ fn create_result_into_wrapper_body(
     }
 }
 
-fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
+fn create_result(data: &Data, result_type: TokenStream) -> TokenStream {
     match *data {
         Data::Struct(ref data) => match data.fields {
             Fields::Named(ref fields) => {
@@ -212,7 +217,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                     }
                 });
                 quote! {
-                    struct #result_name {
+                    struct #result_type {
                         #(#recurse)*
                     }
                 }
@@ -225,7 +230,7 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                     }
                 });
                 quote! {
-                    struct #result_name(#(#recurse,)*);
+                    struct #result_type(#(#recurse,)*);
                 }
             }
 
@@ -241,11 +246,32 @@ fn create_result_fields(data: &Data, result_name: &Ident) -> TokenStream {
                 }
             });
             quote! {
-                enum #result_name {
+                enum #result_type {
                     #(#recurse)*
                 }
             }
         }
         Data::Union(_) => unimplemented!("Unions are not supported"),
     }
+}
+
+pub(crate) fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]) -> Generics {
+    for type_param in &mut generics.type_params_mut() {
+        type_param.bounds.extend(bounds.iter().cloned());
+    }
+    generics
+}
+
+pub(crate) fn build_target_where_clause(
+    mut generics: Generics,
+    bound: TypeParamBound,
+) -> WhereClause {
+    let mut where_clause = generics.make_where_clause().clone();
+    for type_param in &mut generics.type_params() {
+        let ident = &type_param.ident;
+        where_clause
+            .predicates
+            .push(parse_quote! {<#ident as sealedstruct::Sealable>::Target:  #bound})
+    }
+    where_clause
 }
