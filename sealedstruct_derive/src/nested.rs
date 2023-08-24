@@ -87,8 +87,8 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         pub struct #wrapper_name<T>(T);
 
         impl #impl_generics #facade_name #ty_generics #where_clause {
-            pub fn new<TRaw: sealedstruct::TryIntoSealed<Target = #inner_name #ty_generics>>(raw: TRaw) -> sealedstruct::Result<Self> {
-                Ok(#wrapper_name(TRaw::try_into_sealed(raw)?))
+            pub fn new<TRaw: sealedstruct::TryIntoNested<Target = #inner_name #ty_generics>>(raw: TRaw) -> sealedstruct::Result<Self> {
+                Ok(#wrapper_name(TRaw::try_into_nested(raw)?))
             }
             pub fn into_inner(self) -> #inner_name #ty_generics {
                 self.0

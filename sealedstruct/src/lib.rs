@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 use std::{collections::HashMap, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
-pub use sealedstruct_derive::{IntoSealed, Nested, SealSimple, TryIntoSealed};
+pub use sealedstruct_derive::{IntoNested, Nested, SealSimple, TryIntoNested};
 pub use wrapper::*;
 
 pub mod prelude {
@@ -19,7 +19,7 @@ pub mod prelude {
 /// It gets more complicated for types where Raw cannot implement From<Sealed>
 /// - E.g. Generic types like
 ///
-/// Custom types derived from `Seal` usually implement TryIntoSealed only.
+/// Custom types derived from `Nested` usually implement TryIntoNested only.
 /// Sealable is automatically implemented because `Seal`
 /// generates PartialEq<Sealed> for Raw and From<Sealed> for Raw
 pub trait Sealable {
@@ -34,9 +34,9 @@ pub trait Validator {
     fn check(&self) -> Result<()>;
 }
 
-pub trait TryIntoSealed {
+pub trait TryIntoNested {
     type Target;
-    fn try_into_sealed(self) -> Result<Self::Target>;
+    fn try_into_nested(self) -> Result<Self::Target>;
 }
 
 #[derive(Debug, PartialEq, Default, thiserror::Error)]

@@ -28,7 +28,7 @@ mod config {
         Default,
         Debug,
         sealedstruct::Nested,
-        sealedstruct::TryIntoSealed,
+        sealedstruct::TryIntoNested,
         serde::Serialize,
         serde::Deserialize,
     )]
@@ -37,7 +37,7 @@ mod config {
         pub test: i32,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub(super) struct WrapperRaw {
         pub numbers: NumbersRaw,
         pub ip: std::net::IpAddr,
@@ -49,19 +49,19 @@ mod config {
         pub hash_map: HashMap<Uuid, NumbersRaw>,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub enum DirectionRaw {
         Up,
         Down, //Left(i8),
               //Right { millis: i8 }
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::IntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::IntoNested)]
     pub enum AlwaysValid {
         Bar,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::IntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::IntoNested)]
     pub struct AlwaysValidStruct {
         foo: i32,
         bar: i32,
@@ -82,10 +82,10 @@ mod config {
         }
     }
 
-    impl sealedstruct::TryIntoSealed for NumbersRaw {
+    impl sealedstruct::TryIntoNested for NumbersRaw {
         type Target = NumbersInner;
 
-        fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
+        fn try_into_nested(self) -> sealedstruct::Result<Self::Target> {
             NumbersResult {
                 int8: if self.int8 < 100 {
                     Ok(self.int8)
@@ -106,21 +106,21 @@ mod config {
     }
 }
 
-#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub struct TupleStructRaw();
 
-#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub struct TupleStructSingleRaw(i32);
 
-#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub struct TupleStructDoubleRaw(i32, i32);
 
-#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub(crate) struct RootRaw {
     pub child: ChildRaw,
 }
 
-#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub(crate) struct ChildRaw {}
 
 #[test]
@@ -193,9 +193,9 @@ fn error_path() {
 
 #[test]
 fn test_collection_types() {
-    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub struct InnerRaw {}
-    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub struct OuterRaw {
         map: Option<InnerRaw>,
     }

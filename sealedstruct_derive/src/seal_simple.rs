@@ -93,7 +93,7 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
 
-        #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default, sealedstruct::IntoSealed, Ord, PartialOrd)]
+        #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Default, sealedstruct::IntoNested, Ord, PartialOrd)]
         pub struct #wrapper_name<T>(T);
 
         impl<T> std::ops::Deref for #wrapper_name<T> {

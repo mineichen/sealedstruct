@@ -6,10 +6,10 @@ use crate::Sealable;
 /// It transparently forwards most standard implementations to it's inner component
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy, Default)]
-pub struct IntoSealedWrapper<T>(T);
+pub struct IntoNestedWrapper<T>(T);
 
-impl<T: PartialEq> Sealable for IntoSealedWrapper<T> {
-    type Target = IntoSealedWrapper<T>;
+impl<T: PartialEq> Sealable for IntoNestedWrapper<T> {
+    type Target = IntoNestedWrapper<T>;
 
     fn seal(self) -> crate::Result<Self::Target> {
         Ok(self)
@@ -24,27 +24,27 @@ impl<T: PartialEq> Sealable for IntoSealedWrapper<T> {
     }
 }
 
-impl<T: PartialEq> Deref for IntoSealedWrapper<T> {
+impl<T: PartialEq> Deref for IntoNestedWrapper<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl<T: PartialEq> DerefMut for IntoSealedWrapper<T> {
+impl<T: PartialEq> DerefMut for IntoNestedWrapper<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<T: PartialEq> From<T> for IntoSealedWrapper<T> {
+impl<T: PartialEq> From<T> for IntoNestedWrapper<T> {
     fn from(i: T) -> Self {
-        IntoSealedWrapper(i)
+        IntoNestedWrapper(i)
     }
 }
 
 #[cfg(feature = "serde")]
-impl<T: serde::Serialize> serde::Serialize for IntoSealedWrapper<T> {
+impl<T: serde::Serialize> serde::Serialize for IntoNestedWrapper<T> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -53,11 +53,11 @@ impl<T: serde::Serialize> serde::Serialize for IntoSealedWrapper<T> {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for IntoSealedWrapper<T> {
+impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for IntoNestedWrapper<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        T::deserialize(deserializer).map(IntoSealedWrapper)
+        T::deserialize(deserializer).map(IntoNestedWrapper)
     }
 }

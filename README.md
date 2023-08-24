@@ -12,14 +12,14 @@ The API is very experimental and can currently break at any time. This is why th
 
 ## With intermediate Representation
 ```rust
-#[derive(sealedstruct::Seal)]
+#[derive(sealedstruct::Nested)]
 struct FooRaw {
     x: i32
 }
 
-impl TryIntoSealed for ShapeDetectionRaw {
+impl TryIntoNested for ShapeDetectionRaw {
     type Target = FooInner;
-    fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
+    fn try_into_nested(self) -> sealedstruct::Result<Self::Target> {
         todo!("Your validation logic goes here")    
     }
 }

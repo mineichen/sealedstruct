@@ -3,7 +3,7 @@ use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 
-pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn derive_try_into_nested(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -24,10 +24,10 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
     let result = create_fields(&input.data, &result_name);
 
     let expanded = quote! {
-        impl #impl_generics sealedstruct::TryIntoSealed for #raw_struct_name #ty_generics #where_clause {
+        impl #impl_generics sealedstruct::TryIntoNested for #raw_struct_name #ty_generics #where_clause {
             type Target = #inner_name #ty_generics;
 
-            fn try_into_sealed(self) -> sealedstruct::Result<Self::Target> {
+            fn try_into_nested(self) -> sealedstruct::Result<Self::Target> {
                 #result
             }
         }
