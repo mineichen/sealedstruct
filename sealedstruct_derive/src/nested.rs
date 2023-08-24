@@ -9,14 +9,19 @@ use syn::{
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
-    let mut attrs = input.attrs.iter().filter(|x| match x.path.get_ident() {
+    let mut attrs = input.attrs.iter().filter(|x| match x.path().get_ident() {
         Some(ident) => ident == "sealedDerive",
         None => false,
     });
     let inner_derive = if let Some(x) = attrs.next() {
-        let tokens = &x.tokens;
+        let token_list = x
+            .meta
+            .require_list()
+            .expect("Only supports list attributes");
+        let token = &token_list.tokens;
+
         quote! {
-            #[derive #tokens]
+            #[derive(#token)]
         }
     } else {
         TokenStream::new()
