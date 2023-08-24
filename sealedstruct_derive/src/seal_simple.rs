@@ -1,10 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{
-    parse_macro_input, parse_quote, Data, DeriveInput, Fields, Generics, Index, TypeParamBound,
-    WhereClause,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Generics, Index, TypeParamBound};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -260,18 +257,4 @@ pub(crate) fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]
         type_param.bounds.extend(bounds.iter().cloned());
     }
     generics
-}
-
-pub(crate) fn build_target_where_clause(
-    mut generics: Generics,
-    bound: TypeParamBound,
-) -> WhereClause {
-    let mut where_clause = generics.make_where_clause().clone();
-    for type_param in &mut generics.type_params() {
-        let ident = &type_param.ident;
-        where_clause
-            .predicates
-            .push(parse_quote! {<#ident as sealedstruct::Sealable>::Target:  #bound})
-    }
-    where_clause
 }

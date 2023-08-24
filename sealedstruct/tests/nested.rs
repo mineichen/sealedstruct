@@ -11,7 +11,7 @@ mod config {
     // The hole procedure just makes sense if this is contained in a submodule.
     // All fields of the sealed struct would otherwise be accessible anyway
     #[derive(
-        PartialEq, Default, Debug, sealedstruct::Seal, serde::Serialize, serde::Deserialize,
+        PartialEq, Default, Debug, sealedstruct::Nested, serde::Serialize, serde::Deserialize,
     )]
     #[sealedDerive(Clone)]
     #[serde(deny_unknown_fields)]
@@ -27,7 +27,7 @@ mod config {
         PartialEq,
         Default,
         Debug,
-        sealedstruct::Seal,
+        sealedstruct::Nested,
         sealedstruct::TryIntoSealed,
         serde::Serialize,
         serde::Deserialize,
@@ -37,7 +37,7 @@ mod config {
         pub test: i32,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
     pub(super) struct WrapperRaw {
         pub numbers: NumbersRaw,
         pub ip: std::net::IpAddr,
@@ -49,7 +49,7 @@ mod config {
         pub hash_map: HashMap<Uuid, NumbersRaw>,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
     pub enum DirectionRaw {
         Up,
         Down, //Left(i8),
@@ -106,21 +106,21 @@ mod config {
     }
 }
 
-#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
 pub struct TupleStructRaw();
 
-#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
 pub struct TupleStructSingleRaw(i32);
 
-#[derive(sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+#[derive(sealedstruct::Nested, sealedstruct::TryIntoSealed)]
 pub struct TupleStructDoubleRaw(i32, i32);
 
-#[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
 pub(crate) struct RootRaw {
     pub child: ChildRaw,
 }
 
-#[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+#[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
 pub(crate) struct ChildRaw {}
 
 #[test]
@@ -193,9 +193,9 @@ fn error_path() {
 
 #[test]
 fn test_collection_types() {
-    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
     pub struct InnerRaw {}
-    #[derive(PartialEq, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed)]
+    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed)]
     pub struct OuterRaw {
         map: Option<InnerRaw>,
     }

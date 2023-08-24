@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 use std::{collections::HashMap, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
-pub use sealedstruct_derive::{IntoSealed, Seal, SealSimple, TryIntoSealed};
+pub use sealedstruct_derive::{IntoSealed, Nested, SealSimple, TryIntoSealed};
 pub use wrapper::*;
 
 pub mod prelude {
@@ -13,7 +13,7 @@ pub mod prelude {
 }
 
 /// Usually, converting from Sealed to Raw is straight forward:
-/// - When using derive sealedstruct::Seal, Raw implements From<Sealed>, which can be used
+/// - When using derive sealedstruct::Nested, Raw implements From<Sealed>, which can be used
 /// - When Sealed is == Raw, simply return self
 ///
 /// It gets more complicated for types where Raw cannot implement From<Sealed>

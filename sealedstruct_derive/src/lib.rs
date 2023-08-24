@@ -1,5 +1,5 @@
 mod into_sealed;
-mod seal;
+mod nested;
 mod seal_simple;
 mod try_into_sealed;
 
@@ -12,9 +12,9 @@ mod try_into_sealed;
 ///  - {Structname}Result: Helper which can be used inside TryIntoSealed to turn {StructName}Raw
 ///    into Result<{StructName}Sealed, ValidationErrors>. It is private to the file in which
 ///    it is generated on purpose.
-#[proc_macro_derive(Seal, attributes(sealedDerive))]
-pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    seal::derive_seal(input)
+#[proc_macro_derive(Nested, attributes(sealedDerive))]
+pub fn derive_nested(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    nested::derive_seal(input)
 }
 #[proc_macro_derive(SealSimple)]
 pub fn derive_seal_simple(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

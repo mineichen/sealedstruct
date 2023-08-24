@@ -2,7 +2,7 @@ use sealedstruct::Sealable;
 use std::collections::{HashMap, HashSet};
 
 #[derive(
-    PartialEq, Eq, Hash, Clone, Default, Debug, sealedstruct::Seal, sealedstruct::TryIntoSealed,
+    PartialEq, Eq, Hash, Clone, Default, Debug, sealedstruct::Nested, sealedstruct::TryIntoSealed,
 )]
 pub struct FooRaw {
     x: i32,
