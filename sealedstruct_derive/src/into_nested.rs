@@ -1,7 +1,7 @@
 use quote::quote;
 use syn::{parse_macro_input, parse_quote, DeriveInput, WhereClause};
 
-use crate::seal_simple::add_trait_bounds;
+use crate::nested::add_trait_bounds;
 
 pub fn derive_into_nested(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.

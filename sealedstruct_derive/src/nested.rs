@@ -6,8 +6,6 @@ use syn::{
     Visibility, WhereClause,
 };
 
-use crate::seal_simple::add_trait_bounds;
-
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
     let input = parse_macro_input!(input as DeriveInput);
@@ -516,4 +514,10 @@ pub(crate) fn build_target_where_clause(
             .push(parse_quote! {<#ident as sealedstruct::Sealable>::Target:  #bound})
     }
     where_clause
+}
+pub(crate) fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]) -> Generics {
+    for type_param in &mut generics.type_params_mut() {
+        type_param.bounds.extend(bounds.iter().cloned());
+    }
+    generics
 }

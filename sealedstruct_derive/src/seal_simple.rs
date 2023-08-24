@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Generics, Index, TypeParamBound};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Index};
 
 pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -250,11 +250,4 @@ fn create_result(data: &Data, result_type: TokenStream) -> TokenStream {
         }
         Data::Union(_) => unimplemented!("Unions are not supported"),
     }
-}
-
-pub(crate) fn add_trait_bounds(mut generics: Generics, bounds: &[TypeParamBound]) -> Generics {
-    for type_param in &mut generics.type_params_mut() {
-        type_param.bounds.extend(bounds.iter().cloned());
-    }
-    generics
 }
