@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 use std::{collections::HashMap, fmt::Write, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
-pub use sealedstruct_derive::{IntoSealed, Seal, SealSimple, TryIntoSealed, Validator};
+pub use sealedstruct_derive::{IntoSealed, Seal, SealSimple, TryIntoSealed};
 pub use wrapper::*;
 
 pub mod prelude {

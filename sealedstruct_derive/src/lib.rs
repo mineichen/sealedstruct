@@ -2,7 +2,6 @@ mod into_sealed;
 mod seal;
 mod seal_simple;
 mod try_into_sealed;
-mod validator;
 
 /// Generetes several other structs based on {Structname}Raw
 ///  - {Structname}Raw: Can be deserialized or manually constructed. All fields can be pub.
@@ -33,10 +32,4 @@ pub fn derive_try_into_sealed(input: proc_macro::TokenStream) -> proc_macro::Tok
 #[proc_macro_derive(IntoSealed)]
 pub fn derive_into_sealed(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     into_sealed::derive_into_sealed(input)
-}
-
-/// Implements TryIntoSealed for a types without invalid invariant
-#[proc_macro_derive(Validator)]
-pub fn derive_validator(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    validator::derive_validator(input)
 }

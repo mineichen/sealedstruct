@@ -1,8 +1,13 @@
 #[test]
 fn sealed_numbers_simple() {
-    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple, sealedstruct::Validator)]
+    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple)]
     pub struct SimpleRaw {
         pub inner: i8,
+    }
+    impl sealedstruct::Validator for SimpleRaw {
+        fn check(&self) -> sealedstruct::Result<()> {
+            Ok(())
+        }
     }
     let raw = SimpleRaw { inner: 0 };
     let _sealed: Simple = raw.try_into().unwrap();
@@ -10,8 +15,14 @@ fn sealed_numbers_simple() {
 
 #[test]
 fn sealed_numbers_tuple() {
-    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple, sealedstruct::Validator)]
+    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple)]
+
     pub struct SimpleTupleRaw(i8);
+    impl sealedstruct::Validator for SimpleTupleRaw {
+        fn check(&self) -> sealedstruct::Result<()> {
+            Ok(())
+        }
+    }
     sealedstruct::Result::<()>::from(SimpleTupleResult(Result::Ok(()))).unwrap();
     let raw = SimpleTupleRaw(0);
     let _sealed: SimpleTuple = raw.try_into().unwrap();
