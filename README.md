@@ -24,7 +24,7 @@ impl TryIntoNested for ShapeDetectionRaw {
     }
 }
 
-#[derive(sealedstruct::SealSimple)]
+#[derive(sealedstruct::Seal)]
 struct FooSimpleRaw {
     x: i32
 }

@@ -1,6 +1,6 @@
 #[test]
 fn sealed_numbers_simple() {
-    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple)]
+    #[derive(PartialEq, Default, Debug, sealedstruct::Seal)]
     pub struct SimpleRaw {
         pub inner: i8,
     }
@@ -15,7 +15,7 @@ fn sealed_numbers_simple() {
 
 #[test]
 fn sealed_numbers_tuple() {
-    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple)]
+    #[derive(PartialEq, Default, Debug, sealedstruct::Seal)]
 
     pub struct SimpleTupleRaw(i8);
     impl sealedstruct::Validator for SimpleTupleRaw {
@@ -30,7 +30,7 @@ fn sealed_numbers_tuple() {
 
 #[test]
 fn generic_constrained() {
-    #[derive(PartialEq, Default, Debug, sealedstruct::SealSimple)]
+    #[derive(PartialEq, Default, Debug, sealedstruct::Seal)]
     pub struct SimpleGenericRaw<T: std::fmt::Debug> {
         pub x: i32,
         pub inner: T,

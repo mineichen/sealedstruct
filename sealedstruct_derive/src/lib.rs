@@ -1,6 +1,6 @@
 mod into_nested;
 mod nested;
-mod seal_simple;
+mod seal;
 mod try_into_nested;
 
 /// Generetes several other structs based on {Structname}Raw
@@ -16,9 +16,9 @@ mod try_into_nested;
 pub fn derive_nested(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     nested::derive_seal(input)
 }
-#[proc_macro_derive(SealSimple)]
-pub fn derive_seal_simple(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    seal_simple::derive_seal(input)
+#[proc_macro_derive(Seal)]
+pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    seal::derive_seal(input)
 }
 
 /// Generates a TryIntoNested implementation by forwarding all errors from subfields.
