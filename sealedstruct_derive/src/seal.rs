@@ -79,6 +79,10 @@ pub fn derive_seal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         impl #impl_generics #wrapper_name<#raw_name #ty_generics> {
             fn new_unchecked(raw: #raw_name #ty_generics) -> Self {
+                #[cfg(debug_assertions)]
+                if let Err(e) = sealedstruct::Validator::check(&raw) {
+                    panic!("Bug: new_unchecked is expected to receive valid values: {e}");
+                }
                 Self(raw)
             }
 
