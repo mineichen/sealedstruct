@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::Sealable;
 
 /// Used to wrap Values you have no control over
-/// It transparently forwards most standard implementations to it's inner component
+/// It delegates most standard traits to it's inner component
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy, Default)]
 pub struct IntoNestedWrapper<T>(T);

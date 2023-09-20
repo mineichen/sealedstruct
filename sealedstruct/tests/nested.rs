@@ -7,7 +7,7 @@ mod config {
     use std::collections::HashMap;
     use uuid::Uuid;
 
-    // Flaw. Visibility for Raw should be restricted to pub, pub (crate), or pub(super)
+    // Visibility for Raw must be restricted to pub, pub (crate), or pub(super)
     // The hole procedure just makes sense if this is contained in a submodule.
     // All fields of the sealed struct would otherwise be accessible anyway
     #[derive(

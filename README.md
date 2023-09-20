@@ -12,25 +12,65 @@ The API is very experimental and can currently break at any time. This is why th
 
 ## With intermediate Representation
 ```rust
+use sealedstruct::{Nested, TryIntoNested, ValidationError};
+
 #[derive(sealedstruct::Nested)]
-struct FooRaw {
+pub struct FooNestedRaw {
     x: i32
 }
 
-impl TryIntoNested for ShapeDetectionRaw {
-    type Target = FooInner;
+impl TryIntoNested for FooNestedRaw {
+    type Target = FooNestedInner;
     fn try_into_nested(self) -> sealedstruct::Result<Self::Target> {
-        todo!("Your validation logic goes here")    
+        FooNestedResult {
+            x: if self.x <= 42 { Ok(self.x) } else { ValidationError::new("Value must be smaller than ").into()}
+        }.into()
     }
 }
 
-#[derive(sealedstruct::Seal)]
-struct FooSimpleRaw {
-    x: i32
+
+
+#[derive(sealedstruct::Seal, Debug)]
+pub struct RelativeRangeRaw {
+    from: Percentage,
+    to: Percentage
 }
-impl sealedstruct::Validator for InvertibleTransform3dRaw {
+impl sealedstruct::Validator for RelativeRangeRaw {
     fn check(&self) -> sealedstruct::Result<()> {
-        todo!("Your validation logic goes here");
+        if self.from < self.to {
+            Ok(())
+        } else {
+           ValidationError::on_fields("from", ["to"], "From must be smaller than to").into()
+        }
+
     }
 }
+
+#[derive(sealedstruct::Seal, Debug, PartialEq, PartialOrd )]
+pub struct PercentageRaw(f32);
+
+
+impl sealedstruct::Validator for PercentageRaw {
+    fn check(&self) -> sealedstruct::Result<()> {
+        PercentageResult(if matches!(self.0, 0.0..=1.0) { 
+                Ok(()) 
+            } else { 
+                ValidationError::new(format!("Percentages must be between 0 and 1, got {}", self.0)).into()
+            }            
+        ).into()
+    }
+}
+
+let mut errors = RelativeRangeRaw {
+    from: PercentageRaw(0.9).seal().unwrap(),
+    to: PercentageRaw(0.1).seal().unwrap(),    
+}.seal().unwrap_err().into_iter();
+let Some(e) = errors.next() else {
+    panic!("Should contain at least one error");
+};
+assert_eq!("From must be smaller than to", e.reason);
+assert_eq!(None, errors.next());
+
 ```
+
+If all errors should be available,
