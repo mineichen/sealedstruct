@@ -10,7 +10,7 @@ chrono = { version = "0.4", optional = true }
 sealedstruct_derive = { path = "../sealedstruct_derive" }
 serde = { version = "1", features = ["derive"], optional = true }
 smallvec = { version = "1.0", features = ["const_new"] }
-thiserror = "1"
+thiserror = "2"
 uuid = { version = "1", optional = true }
 
 [features]
