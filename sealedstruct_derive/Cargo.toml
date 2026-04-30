@@ -7,7 +7,7 @@ description = "Procedural macro crate for sealedstruct - derive macros for valid
 license = "MIT"
 repository = "https://github.com/mineichen/sealedstruct"
 keywords = ["validation", "derive", "macro", "struct", "sealed"]
-categories = ["development-tools::procedural-macros"]
+categories = ["development-tools"]
 readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
