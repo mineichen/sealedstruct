@@ -4,7 +4,7 @@ mod stdimpl;
 mod wrapper;
 
 use smallvec::SmallVec;
-use std::{collections::HashMap, fmt::Write, num, sync::Arc};
+use std::{collections::HashMap, fmt::Display, num, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, ValidationErrors>;
 pub use sealedstruct_derive::{IntoNested, Nested, Seal, TryIntoNested};
@@ -47,7 +47,6 @@ pub struct ValidationErrors(SmallVec<[ValidationError; 1]>);
 // Format is used for summary-purpose only and doesn't output real JSON by choice.
 impl std::fmt::Display for ValidationErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ValidationErrors({}): {}", self.0.len(), '{'))?;
         let mut map: HashMap<&str, SmallVec<[&str; 1]>> = HashMap::new();
 
         for error in self.0.iter() {
@@ -63,18 +62,13 @@ impl std::fmt::Display for ValidationErrors {
             }
         }
 
-        let mut iter = map.into_iter();
-        if let Some((first, first_reasons)) = iter.next() {
-            f.write_fmt(format_args!("{}: {:?}", first, first_reasons))?;
-            for (x, x_reasons) in iter.by_ref().take(4) {
-                f.write_fmt(format_args!(", {}: {:?}", x, x_reasons))?;
-            }
-            if iter.next().is_some() {
-                f.write_str(", ...")?;
+        for (x_field, x_reasons) in map {
+            f.write_fmt(format_args!("{x_field}:\n"))?;
+            for reason in x_reasons {
+                f.write_fmt(format_args!("- {reason}\n"))?;
             }
         }
-
-        f.write_char('}')
+        Ok(())
     }
 }
 
@@ -108,10 +102,32 @@ impl IntoIterator for ValidationErrors {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, thiserror::Error)]
 pub struct ValidationError {
     fields: SmallVec<[String; 1]>,
-    pub reason: String,
+    pub(crate) reason: String,
+}
+
+impl Display for ValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.fields.iter();
+        let first = iter
+            .next()
+            .expect("Constructors make sure there is always one");
+        if first.is_empty() {
+            f.write_str("Validation error: ")?;
+        } else if let Some(second) = iter.next() {
+            f.write_fmt(format_args!("Validation error in [{first}, {second}"))?;
+            for nth in iter {
+                f.write_fmt(format_args!(", {nth}"))?;
+            }
+            f.write_str("]: ")?;
+        } else {
+            f.write_fmt(format_args!("Validation error in {first}: "))?;
+        }
+
+        f.write_str(&self.reason)
+    }
 }
 
 impl ValidationError {
@@ -369,9 +385,6 @@ mod tests {
         let result = result.prepend_path("Baz");
         let error: Box<dyn std::error::Error> = Box::new(result.unwrap_err());
 
-        assert_eq!(
-            "ValidationErrors(1): {Baz.Foo: [\"CustomMessage\"]}".to_string(),
-            error.to_string()
-        );
+        assert_eq!("Baz.Foo:\n- CustomMessage\n", error.to_string());
     }
 }

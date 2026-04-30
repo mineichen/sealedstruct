@@ -29,7 +29,6 @@ impl TryIntoNested for FooNestedRaw {
 }
 
 
-
 #[derive(sealedstruct::Seal, Debug)]
 pub struct RelativeRangeRaw {
     from: Percentage,
@@ -68,7 +67,7 @@ let mut errors = RelativeRangeRaw {
 let Some(e) = errors.next() else {
     panic!("Should contain at least one error");
 };
-assert_eq!("From must be smaller than to", e.reason);
+assert_eq!("Validation error in [from, to]: From must be smaller than to", e.to_string());
 assert_eq!(None, errors.next());
 
 ```

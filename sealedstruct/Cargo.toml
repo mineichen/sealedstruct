@@ -2,12 +2,19 @@
 edition = "2021"
 name = "sealedstruct"
 version = "0.1.0"
+authors = ["Markus Ineichen"]
+description = "Generate boilerplate code to transition from raw (unchecked) structs to sealed (validated) structs at compile time"
+license = "MIT"
+repository = "https://github.com/mineichen/sealedstruct"
+readme = "../README.md"
+keywords = ["validation", "derive", "macro", "struct", "sealed"]
+categories = ["development-tools", "rust-patterns"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chrono = { version = "0.4", optional = true }
-sealedstruct_derive = { path = "../sealedstruct_derive" }
+sealedstruct_derive = { version = "0.1.0", path = "../sealedstruct_derive" }
 serde = { version = "1", features = ["derive"], optional = true }
 smallvec = { version = "1.0", features = ["const_new"] }
 thiserror = "2"

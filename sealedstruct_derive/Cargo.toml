@@ -2,6 +2,13 @@
 edition = "2021"
 name = "sealedstruct_derive"
 version = "0.1.0"
+authors = ["Markus Ineichen"]
+description = "Procedural macro crate for sealedstruct - derive macros for validating structs"
+license = "MIT"
+repository = "https://github.com/mineichen/sealedstruct"
+keywords = ["validation", "derive", "macro", "struct", "sealed"]
+categories = ["development-tools::procedural-macros"]
+readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,7 +18,7 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
-syn = "^2.0.29"
+syn = "2"
 
 [dev-dependencies]
 sealedstruct = { path = "../sealedstruct" }

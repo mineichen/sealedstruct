@@ -23,6 +23,7 @@ mod config {
         pub int128: i128,
     }
 
+    #[allow(dead_code)]
     #[derive(
         PartialEq,
         Default,
@@ -61,6 +62,7 @@ mod config {
         Bar,
     }
 
+    #[allow(dead_code)]
     #[derive(PartialEq, Debug, sealedstruct::IntoNested)]
     pub struct AlwaysValidStruct {
         foo: i32,
@@ -115,6 +117,7 @@ pub struct TupleStructSingleRaw(i32);
 #[derive(sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub struct TupleStructDoubleRaw(i32, i32);
 
+#[allow(dead_code)]
 #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
 pub(crate) struct RootRaw {
     pub child: ChildRaw,
@@ -195,6 +198,8 @@ fn error_path() {
 fn test_collection_types() {
     #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub struct InnerRaw {}
+
+    #[allow(dead_code)]
     #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
     pub struct OuterRaw {
         map: Option<InnerRaw>,
