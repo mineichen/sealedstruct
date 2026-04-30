@@ -38,7 +38,8 @@ mod config {
         pub test: i32,
     }
 
-    #[derive(PartialEq, Debug, sealedstruct::Nested, sealedstruct::TryIntoNested)]
+    #[cfg(feature = "uuid")]
+    #[derive(PartialEq, Debug, sealedstruct::TryIntoNested, sealedstruct::Nested)]
     pub(super) struct WrapperRaw {
         pub numbers: NumbersRaw,
         pub ip: std::net::IpAddr,
