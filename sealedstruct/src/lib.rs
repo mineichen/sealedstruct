@@ -15,15 +15,15 @@ pub mod prelude {
 }
 
 /// Usually, converting from Sealed to Raw is straight forward:
-/// - When using derive sealedstruct::Nested, Raw implements From<Sealed>, which can be used
+/// - When using derive sealedstruct::Nested, Raw implements `From<Sealed>`, which can be used
 /// - When Sealed is == Raw, simply return self
 ///
-/// It gets more complicated for types where Raw cannot implement From<Sealed>
+/// It gets more complicated for types where Raw cannot implement `From<Sealed>`
 /// - E.g. Generic types like
 ///
 /// Custom types derived from `Nested` usually implement TryIntoNested only.
 /// Sealable is automatically implemented because `Seal`
-/// generates PartialEq<Sealed> for Raw and From<Sealed> for Raw
+/// generates `PartialEq<Sealed>` for Raw and `From<Sealed>` for Raw
 pub trait Sealable {
     type Target;
     fn seal(self) -> Result<Self::Target>;
